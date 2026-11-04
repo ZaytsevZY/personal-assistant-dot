@@ -1,6 +1,6 @@
 # 本地最小版本
 
-当前实现：Python 命令入口、私人 JSON 存储、同步任务运行器、合成数据适配器、状态查询与手动暂停。支持 macOS 和 Linux、Python 3.9+，只使用标准库。不包含新闻抓取、模型调用、后台调度、桌面图形界面或真实平台适配器。
+当前实现：Python 命令入口、私人 JSON 存储、同步任务运行器、合成数据适配器、状态查询、手动暂停和[只读本地控制台](local-console.md)。支持 macOS 和 Linux、Python 3.9+，运行器只使用标准库。不包含新闻抓取、模型调用、后台调度、实时图形控制或真实平台适配器。
 
 ## 运行
 
@@ -19,6 +19,7 @@ python3 -B -m assistant_dot --private-root "<private-root>" init
 printf '%s\n' '合成笔记：考虑整理一份阅读清单' | python3 -B -m assistant_dot --private-root "<private-root>" /capture --stdin
 python3 -B -m assistant_dot --private-root "<private-root>" /run demo-news --key example
 python3 -B -m assistant_dot --private-root "<private-root>" /tasks
+python3 -B -m assistant_dot --private-root "<private-root>" /console
 python3 -B -m assistant_dot --private-root "<private-root>" /status "<task-id>"
 python3 -B -m assistant_dot --private-root "<private-root>" /pause
 python3 -B -m assistant_dot --private-root "<private-root>" /resume
@@ -50,6 +51,7 @@ CLI 只启用内置合成适配器。Python 接口支持注入另一个受信任
 
 ```sh
 python3 -B tests/acceptance.py
+node tests/console_preview.js
 python3 -B scripts/check_public.py
 ```
 

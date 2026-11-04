@@ -10,6 +10,9 @@
     "README.md",
     "assistant_dot/__init__.py",
     "assistant_dot/__main__.py",
+    "assistant_dot/console.css",
+    "assistant_dot/console.py",
+    "assistant_dot/console_preview.js",
     "assistant_dot/runtime.py",
     "assistant_dot/storage.py",
     "config/local-runtime.example.json",
@@ -24,6 +27,7 @@
     "docs/discovery.md",
     "docs/interfaces.md",
     "docs/iteration.md",
+    "docs/local-console.md",
     "docs/local-mvp.md",
     "docs/market-extension.md",
     "docs/privacy.md",
@@ -44,6 +48,7 @@
     "templates/feedback.example.json",
     "templates/news-item.example.json",
     "templates/task-envelope.example.json",
-    "tests/acceptance.py"
+    "tests/acceptance.py",
+    "tests/console_preview.js"
   ]
 }

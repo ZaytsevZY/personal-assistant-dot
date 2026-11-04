@@ -122,6 +122,11 @@ class TaskRunner:
             self._recover_interrupted(tasks)
             return tasks
 
+    def snapshot(self):
+        """Read state consistently without reconciling or changing task records."""
+        with self.store.lock():
+            return {"settings": self.settings(), "tasks": self._tasks()}
+
     def inspect(self, task_id):
         if not re.fullmatch(r"[a-f0-9]{32}", task_id):
             raise LocalError("invalid task ID")

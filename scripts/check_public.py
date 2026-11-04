@@ -142,6 +142,9 @@ def check():
     try:
         require(policy["mode"] == "local_mvp", "project must declare the local-only MVP")
         require(policy["project_name"] == "personal-assistant-dot", "project name must match")
+        require(policy["integrations"]["desktop_console"] == {
+                    "implemented": True, "mode": "read_only_snapshot", "default_access": "local_only"},
+                "console must remain a local read-only snapshot")
         require(policy["runtime_file"] in allowed, "runtime config must be allowlisted")
         require(runtime["status"] == "local_mvp", "runtime status must match the local MVP")
         require(policy["local_runtime_file"] in allowed

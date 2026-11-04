@@ -1,6 +1,9 @@
 """Offline acceptance tests using only temporary synthetic private stores."""
 
 import json
+import base64
+import hashlib
+from html.parser import HTMLParser
 import os
 from pathlib import Path
 import stat
@@ -12,6 +15,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
 from assistant_dot.runtime import Draft, SyntheticAdapter, TaskRunner
 from assistant_dot.storage import LocalError, PrivateStore
+from assistant_dot.console import load_schedule_registry
 
 
 def cli(*arguments, root=None, input_text=None, expected=0):
@@ -185,6 +189,102 @@ def test_interruption_and_adapter_replacement(parent):
     assert second["reused"] is True and second["task"]["task_id"] == first["task"]["task_id"]
     third = TaskRunner(store, Replacement()).run("demo-open-source", "different")
     assert third["task"]["adapter"] == "synthetic-replacement" and third["task"]["state"] == "succeeded"
+
+
+def test_readonly_console_export(parent):
+    root = initialized(parent, "console")
+    cli("/capture", "--stdin", root=root, input_text="SYNTHETIC_NOTE_MUST_NOT_APPEAR_IN_CONSOLE")
+    cli("/run", "demo-news", "--key", "console", root=root)
+    tasks_file = root / "state/tasks.json"
+    state = json.loads(tasks_file.read_text())
+    state["tasks"][0]["state"] = "running"
+    state["tasks"][0]["created_at"] = '</td><script>alert("synthetic")</script>'
+    state["tasks"][0]["idempotency_key"] = "private-demo"
+    excluded = dict(state["tasks"][0], task_id="f" * 32, synthetic=False,
+                    idempotency_key="excluded", created_at="SYNTHETIC_EXCLUDED_RECORD")
+    state["tasks"].append(excluded)
+    tasks_file.write_text(json.dumps(state))
+    before_state = tasks_file.read_bytes()
+    before_settings = (root / "settings.json").read_bytes()
+    result = cli("/console", root=root)
+    assert result["mode"] == "read_only_local_snapshot"
+    path = root / result["private_file"]
+    document = path.read_text()
+    assert "SYNTHETIC_NOTE_MUST_NOT_APPEAR_IN_CONSOLE" not in document
+    assert "private-demo" not in document
+    assert "SYNTHETIC_EXCLUDED_RECORD" not in document
+    assert '</td><script>alert("synthetic")</script>' not in document
+    assert "&lt;/td&gt;&lt;script&gt;" in document
+    assert "需核对" in document and "不会保存、启用或触发任务" in document
+    assert tasks_file.read_bytes() == before_state
+    assert (root / "settings.json").read_bytes() == before_settings
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+    class ConsoleParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.policy = ""
+            self.inline = {"script": "", "style": ""}
+            self.current = None
+            self.remote_resources = []
+            self.ids = set()
+
+        def handle_starttag(self, tag, attrs):
+            values = dict(attrs)
+            if "id" in values:
+                self.ids.add(values["id"])
+            if tag == "meta" and values.get("http-equiv") == "Content-Security-Policy":
+                self.policy = values["content"]
+            if tag in self.inline:
+                self.current = tag
+            if "src" in values or (tag == "link" and "href" in values):
+                self.remote_resources.append(values)
+
+        def handle_endtag(self, tag):
+            if tag == self.current:
+                self.current = None
+
+        def handle_data(self, data):
+            if self.current:
+                self.inline[self.current] += data
+
+    parser = ConsoleParser()
+    parser.feed(document)
+    assert not parser.remote_resources
+    assert {"reference", "daily-time", "weekly-day", "weekly-time", "preview-count",
+            "preview-button", "preview-results", "preview-error", "task-filter"}.issubset(parser.ids)
+    assert "connect-src 'none'" in parser.policy and "default-src 'none'" in parser.policy
+    for content in parser.inline.values():
+        digest = base64.b64encode(hashlib.sha256(content.encode()).digest()).decode()
+        assert "'sha256-" + digest + "'" in parser.policy
+    path.unlink()
+    outside = parent / "console-sentinel.html"
+    outside.write_text("synthetic sentinel")
+    path.symlink_to(outside)
+    cli("/console", root=root, expected=2)
+    assert outside.read_text() == "synthetic sentinel"
+    cli("/console", expected=2)
+
+
+def test_central_registry_refuses_activation(parent):
+    project = parent / "registry-project"
+    (project / "config").mkdir(parents=True)
+    original = json.loads((PROJECT / "config/schedules.example.json").read_text())
+    target = project / "config/schedules.example.json"
+    target.write_text(json.dumps(original))
+    assert load_schedule_registry(project)["scheduler_implemented"] is False
+    for mutate in (lambda v: v["tasks"][0].update(enabled=True),
+                   lambda v: v.update(output_channel="synthetic-channel"),
+                   lambda v: v["tasks"][0].update(local_time="08:00"),
+                   lambda v: v["tasks"][0].update(id=["invalid"])):
+        value = json.loads(json.dumps(original))
+        mutate(value)
+        target.write_text(json.dumps(value))
+        try:
+            load_schedule_registry(project)
+            assert False, "modified schedule must be rejected"
+        except LocalError:
+            pass
 
 
 def main():

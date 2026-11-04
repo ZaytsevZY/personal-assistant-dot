@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 
 from .runtime import TaskRunner, validate_settings
+from .console import export_console, load_schedule_registry
 from .storage import LocalError, PrivateStore
 
 
@@ -22,8 +23,9 @@ HELP = {
         "/pause | /resume": "pause/resume manual demo runs, not a background scheduler",
         "/runtime": "show local capabilities without account details",
         "/schedule": "show the central registry; all schedules remain disabled",
+        "/console": "export a read-only local HTML snapshot and hypothetical UTC preview",
     },
-    "not_configured": ["natural_language_agent", "live_news", "feishu", "dot_push", "calendar", "market_data", "desktop_console", "scheduler"],
+    "not_configured": ["natural_language_agent", "live_news", "feishu", "dot_push", "calendar", "market_data", "live_console_controls", "scheduler"],
 }
 
 
@@ -34,15 +36,14 @@ def command(arguments, private_root=None):
         return HELP
     if name == "/runtime" and not rest:
         return {"status": "local_only", "available_adapter": "synthetic", "private_store_checked": False, "agent_replaceable": True,
+                "console_mode": "read_only_local_snapshot",
                 "network_enabled": False, "delivery_enabled": False, "scheduler_enabled": False}
     if name == "/schedule" and not rest:
-        registry = json.loads((PROJECT / "config/schedules.example.json").read_text())
-        if any(task.get("enabled") is not False for task in registry["tasks"]):
-            raise LocalError("this MVP requires all central schedules to remain disabled")
+        registry = load_schedule_registry(PROJECT)
         return {"status": "not_running", "registry": registry, "changes_supported": False}
     if name in {"/news", "/calendar", "/market", "/review"}:
         return {"status": "not_configured", "command": name, "external_actions_performed": False}
-    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume"}:
+    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console"}:
         raise LocalError("command is not implemented; use /h")
     if not private_root:
         raise LocalError("--private-root is required; no default private directory is created")
@@ -51,6 +52,8 @@ def command(arguments, private_root=None):
         settings = json.loads((PROJECT / "config/local-runtime.example.json").read_text())
         store.initialize(validate_settings(settings))
         return {"status": "initialized", "mode": "local_only", "scheduler_enabled": False}
+    if name == "/console" and not rest:
+        return export_console(store, PROJECT)
     runner = TaskRunner(store)
     if name == "/capture":
         runner.settings()
