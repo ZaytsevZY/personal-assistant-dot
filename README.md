@@ -2,7 +2,7 @@
 
 一个本地优先、可审计、由用户控制的个人助手项目。把生活与工作流程、新闻发现、开源调研和推荐反馈放进同一套可持续改进的方法中。
 
-**状态：已有可运行的本地最小版本**，支持私人笔记、命令、合成任务、持久状态和只读控制台快照；新闻抓取、真实 agent、平台接入、实时控制及后台调度仍未实现。没有内置个人资料。
+**状态：已有可运行的本地交互工作台**，支持状态查看、私人笔记命令、合成任务、手动计划与持久账本；真实新闻、模型、账号渠道及后台调度仍未接入。没有内置个人资料。
 
 项目最初由 dot 协助开发和管理，dot 也可以成为初期主控制入口。名称保留这个起点，但核心策略、数据、提示词和调度契约不依赖 dot；后续可以换成其他 agent。控制入口、执行 agent 和输出渠道分别配置，见[agent 可替换设计](docs/agent-portability.md)。
 
@@ -16,7 +16,7 @@ python3 -B -m assistant_dot /runtime
 python3 -B tests/acceptance.py
 ```
 
-要保存内容和运行演示，请按[本地最小版本](docs/local-mvp.md)选择仓库外、未被 Git 管理的私人目录并初始化。当前演示仅使用合成数据，不会获取真实新闻、调用模型、发送消息或创建日程。
+要保存内容和运行演示，请按[本地最小版本](docs/local-mvp.md)选择仓库外、未被 Git 管理的私人目录并初始化。之后运行 `python3 -B -m assistant_dot --private-root "<private-root>" /workbench`，打开终端显示的本机地址。当前只运行合成工作流，不会获取真实新闻、调用模型、发送消息或创建日程。
 
 1. 阅读[助手工作说明](docs/charter.md)，确定助手如何记忆、建议和行动。
 2. 阅读[系统设计](docs/architecture.md)与[数据隔离](docs/privacy.md)，在仓库之外建立私人资料目录。
@@ -31,7 +31,8 @@ python3 -B tests/acceptance.py
 | 助手的角色、主动程度与权限 | [工作说明](docs/charter.md) |
 | 组件、运行状态、可靠性与集成 | [架构](docs/architecture.md) |
 | 可运行命令、私人目录、配置与验收 | [本地最小版本](docs/local-mvp.md) |
-| 本地可视化、合成任务筛选与 UTC 演练 | [本地控制台](docs/local-console.md) |
+| 本地交互工作台、任务与计划操作 | [本地控制台](docs/local-console.md) |
+| IANA 时区、错过策略、水位与手动候选运行 | [统一计划](docs/manual-plans.md) |
 | dot 起步、其他 agent 接管与数据迁移 | [agent 可替换设计](docs/agent-portability.md) |
 | 飞书 / dot 对话、命令与电脑控制台 | [入口设计](docs/interfaces.md) |
 | 经济与股票查询的可选范围 | [经济与市场扩展](docs/market-extension.md) |

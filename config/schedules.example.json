@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "registry_mode": "single_project_registry",
+  "manual_plans_file": "config/plans.example.json",
   "scheduler_implemented": false,
   "backend": null,
   "timezone": null,

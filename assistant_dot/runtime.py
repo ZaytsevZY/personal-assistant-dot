@@ -92,6 +92,7 @@ class TaskRunner:
             raise LocalError("task state format is invalid")
         tasks = value["tasks"]
         seen = set()
+        seen_keys = set()
         for item in tasks:
             if (not isinstance(item, dict) or not isinstance(item.get("task_id"), str)
                     or not re.fullmatch(r"[a-f0-9]{32}", item["task_id"])
@@ -101,6 +102,10 @@ class TaskRunner:
                     or item["state"] not in {"ready", "running", "succeeded", "failed", "uncertain"}):
                 raise LocalError("task record is invalid")
             seen.add(item["task_id"])
+            pair = (item["workflow_id"], item["idempotency_key"])
+            if pair in seen_keys:
+                raise LocalError("duplicate workflow idempotency key in task records")
+            seen_keys.add(pair)
         return tasks
 
     def _save(self, tasks):
@@ -148,44 +153,47 @@ class TaskRunner:
         return {"paused": paused, "scheduler_enabled": False}
 
     def run(self, workflow_id, idempotency_key=None):
+        with self.store.lock():
+            return self._run_locked(workflow_id, idempotency_key)
+
+    def _run_locked(self, workflow_id, idempotency_key=None):
+        """Internal transaction entry; caller must hold the shared private-store lock."""
         if workflow_id not in WORKFLOWS:
             raise LocalError("workflow is not configured; only demo workflows can run")
         if idempotency_key is not None and not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", idempotency_key):
             raise LocalError("idempotency key requires 1 to 80 letters, digits, underscores or hyphens")
         key = idempotency_key if idempotency_key is not None else uuid4().hex
-        with self.store.lock():
-            settings = self.settings()
-            tasks = self._tasks()
-            # Holding the writer lock proves no other local run still owns these records.
-            self._recover_interrupted(tasks)
-            for task in tasks:
-                if task["workflow_id"] == workflow_id and task["idempotency_key"] == key:
-                    return {"reused": True, "task": task}
-            if settings["paused"]:
-                raise LocalError("manual runner is paused; use /resume to allow manual demos")
-            task_id = uuid4().hex
-            request = TaskRequest(task_id, workflow_id, self.policy_version)
-            if not self.adapter.prepare(request):
-                raise LocalError("adapter does not support this workflow")
-            task = {"task_id": task_id, "workflow_id": workflow_id, "idempotency_key": key,
-                    "adapter": self.adapter.name, "policy_version": request.policy_version,
-                    "state": "ready", "created_at": now(), "updated_at": now(),
-                    "synthetic": True, "artifact_refs": [], "verified_side_effects": []}
-            tasks.append(task)
-            self._save(tasks)
-            task.update(state="running", updated_at=now())
-            self._save(tasks)
-            self.store.audit("task_started", task_id=task_id, workflow_id=workflow_id)
-            try:
-                draft = self.adapter.run(request)
-                if not isinstance(draft, Draft) or draft.synthetic is not True or not isinstance(draft.markdown, str) or len(draft.markdown) > 1_000_000:
-                    raise LocalError("adapter returned an invalid synthetic draft")
-                relative = "resources/drafts/" + task_id + ".md"
-                self.store.write_text(relative, draft.markdown)
-                task.update(state="succeeded", artifact_refs=[relative])
-            except Exception:
-                task.update(state="failed", error="local_adapter_or_storage_failure")
-            task["updated_at"] = now()
-            self._save(tasks)
-            self.store.audit("task_finished", task_id=task_id, state=task["state"])
-            return {"reused": False, "task": task}
+        settings = self.settings()
+        tasks = self._tasks()
+        self._recover_interrupted(tasks)
+        for task in tasks:
+            if task["workflow_id"] == workflow_id and task["idempotency_key"] == key:
+                return {"reused": True, "task": task}
+        if settings["paused"]:
+            raise LocalError("manual runner is paused; use /resume to allow manual demos")
+        task_id = uuid4().hex
+        request = TaskRequest(task_id, workflow_id, self.policy_version)
+        if not self.adapter.prepare(request):
+            raise LocalError("adapter does not support this workflow")
+        task = {"task_id": task_id, "workflow_id": workflow_id, "idempotency_key": key,
+                "adapter": self.adapter.name, "policy_version": request.policy_version,
+                "state": "ready", "created_at": now(), "updated_at": now(),
+                "synthetic": True, "artifact_refs": [], "verified_side_effects": []}
+        tasks.append(task)
+        self._save(tasks)
+        task.update(state="running", updated_at=now())
+        self._save(tasks)
+        self.store.audit("task_started", task_id=task_id, workflow_id=workflow_id)
+        try:
+            draft = self.adapter.run(request)
+            if not isinstance(draft, Draft) or draft.synthetic is not True or not isinstance(draft.markdown, str) or len(draft.markdown) > 1_000_000:
+                raise LocalError("adapter returned an invalid synthetic draft")
+            relative = "resources/drafts/" + task_id + ".md"
+            self.store.write_text(relative, draft.markdown)
+            task.update(state="succeeded", artifact_refs=[relative])
+        except Exception:
+            task.update(state="failed", error="local_adapter_or_storage_failure")
+        task["updated_at"] = now()
+        self._save(tasks)
+        self.store.audit("task_finished", task_id=task_id, state=task["state"])
+        return {"reused": False, "task": task}

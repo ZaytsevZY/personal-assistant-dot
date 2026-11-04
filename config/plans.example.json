@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "mode": "manual_only",
+  "lookback_days": 31,
+  "max_records": 500,
+  "dst_gap_policy": "skip",
+  "dst_fold_policy": "earlier",
+  "plans": [
+    {"id": "demo-daily", "workflow_id": "demo-news", "timezone": "UTC", "cadence": "daily", "local_time": "08:00", "weekday": null, "missed_policy": "coalesce_latest", "max_lateness_minutes": 0},
+    {"id": "demo-weekly", "workflow_id": "demo-open-source", "timezone": "UTC", "cadence": "weekly", "local_time": "09:00", "weekday": 0, "missed_policy": "skip_expired", "max_lateness_minutes": 120}
+  ]
+}

@@ -4,33 +4,15 @@ import base64
 from collections import Counter
 import hashlib
 from html import escape
-import json
 from pathlib import Path
 
 from .runtime import TaskRunner
-from .storage import LocalError, now
+from .storage import now
+from .plans import load_schedule_registry
 
 
 ASSETS = Path(__file__).resolve().parent
 LABELS = {"demo-news": "合成新闻演示", "demo-open-source": "合成开源调研"}
-
-
-def load_schedule_registry(project):
-    value = json.loads((Path(project) / "config/schedules.example.json").read_text())
-    if (not isinstance(value, dict) or value.get("registry_mode") != "single_project_registry"
-            or value.get("scheduler_implemented") is not False
-            or not isinstance(value.get("tasks"), list)
-            or any(value.get(key) is not None for key in ("backend", "timezone", "output_channel"))):
-        raise LocalError("central schedule registry is unsupported or attempts to enable delivery")
-    tasks = value["tasks"]
-    if len(tasks) != 2 or any(not isinstance(task, dict) or not isinstance(task.get("id"), str) for task in tasks):
-        raise LocalError("central schedule registry must contain the two disabled task definitions")
-    expected = {"daily-news": "daily", "weekly-open-source-review": "weekly"}
-    if ({task.get("id") for task in tasks} != set(expected)
-            or any(task.get("enabled") is not False or task.get("cadence") != expected[task["id"]]
-                   or task.get("local_time") is not None or task.get("weekday") is not None for task in tasks)):
-        raise LocalError("this MVP only previews the disabled, unconfigured central schedules")
-    return value
 
 
 def _hash(content):

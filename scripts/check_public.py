@@ -143,8 +143,8 @@ def check():
         require(policy["mode"] == "local_mvp", "project must declare the local-only MVP")
         require(policy["project_name"] == "personal-assistant-dot", "project name must match")
         require(policy["integrations"]["desktop_console"] == {
-                    "implemented": True, "mode": "read_only_snapshot", "default_access": "local_only"},
-                "console must remain a local read-only snapshot")
+                    "implemented": True, "mode": "interactive_loopback", "default_access": "local_only"},
+                "workbench must remain a local-only interactive service")
         require(policy["runtime_file"] in allowed, "runtime config must be allowlisted")
         require(runtime["status"] == "local_mvp", "runtime status must match the local MVP")
         require(policy["local_runtime_file"] in allowed
@@ -186,6 +186,16 @@ def check():
                 "sensitive trait inference must remain disabled")
         require(schedules["registry_mode"] == "single_project_registry",
                 "schedules must be centralized")
+        require(schedules["manual_plans_file"] == "config/plans.example.json"
+                and schedules["manual_plans_file"] in allowed, "manual plans must use the central registry reference")
+        manual = load_json("config/plans.example.json")
+        require(manual["mode"] == "manual_only" and manual["dst_gap_policy"] == "skip"
+                and manual["dst_fold_policy"] == "earlier", "plans must remain manual-only with explicit DST rules")
+        require(all(plan["workflow_id"] in {"demo-news", "demo-open-source"} for plan in manual["plans"]),
+                "public plan examples must use synthetic workflows only")
+        require(runtime["workbench"] == {"implemented": True, "bind": "127.0.0.1", "foreground_only": True}
+                and runtime["manual_planning"]["automatic_execution"] is False,
+                "workbench and planner cannot enable background or remote execution")
         require(schedules["scheduler_implemented"] is False, "scheduler is not implemented")
         require(all(schedules[key] is None for key in ("backend", "timezone", "output_channel")),
                 "public scheduler example cannot imply configured delivery")

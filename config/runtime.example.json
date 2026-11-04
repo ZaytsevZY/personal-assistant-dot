@@ -2,6 +2,8 @@
   "schema_version": 1,
   "status": "local_mvp",
   "local_runner": {"implemented": true, "available_adapter": "synthetic", "config_file": "config/local-runtime.example.json"},
+  "manual_planning": {"implemented": true, "automatic_execution": false, "registry_file": "config/schedules.example.json"},
+  "workbench": {"implemented": true, "bind": "127.0.0.1", "foreground_only": true},
   "contract_version": "agent-runtime.v1-draft",
   "control_host": {"initial_choice": "dot", "active_adapter": null, "replaceable": true},
   "execution_agent": {"active_adapter": null, "replaceable": true},

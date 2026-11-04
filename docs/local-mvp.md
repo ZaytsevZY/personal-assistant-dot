@@ -1,6 +1,6 @@
 # 本地最小版本
 
-当前实现：Python 命令入口、私人 JSON 存储、同步任务运行器、合成数据适配器、状态查询、手动暂停和[只读本地控制台](local-console.md)。支持 macOS 和 Linux、Python 3.9+，运行器只使用标准库。不包含新闻抓取、模型调用、后台调度、实时图形控制或真实平台适配器。
+当前实现：Python 命令、私人 JSON 存储、同步合成运行器、手动计划账本和[交互式本地工作台](local-console.md)。支持 macOS 和 Linux、Python 3.9+，只使用标准库与本机 IANA 时区数据。不包含真实新闻、模型、账号渠道或后台调度。
 
 ## 运行
 
@@ -20,6 +20,7 @@ printf '%s\n' '合成笔记：考虑整理一份阅读清单' | python3 -B -m as
 python3 -B -m assistant_dot --private-root "<private-root>" /run demo-news --key example
 python3 -B -m assistant_dot --private-root "<private-root>" /tasks
 python3 -B -m assistant_dot --private-root "<private-root>" /console
+python3 -B -m assistant_dot --private-root "<private-root>" /workbench
 python3 -B -m assistant_dot --private-root "<private-root>" /status "<task-id>"
 python3 -B -m assistant_dot --private-root "<private-root>" /pause
 python3 -B -m assistant_dot --private-root "<private-root>" /resume
@@ -33,7 +34,7 @@ python3 -B -m assistant_dot --private-root "<private-root>" /resume
 
 公共初值集中在 [local-runtime.example.json](../config/local-runtime.example.json)，初始化后私人 `settings.json` 是该目录的有效本地配置。只允许合成适配器、手动暂停状态，以及保持为 false 的网络、投递和调度开关；未知配置、非法 JSON 或试图启用外部动作会被拒绝，不静默回退。`/runtime` 显示程序可用能力，不读取或声称已检查某个私人目录。
 
-中央调度注册表仍是 [schedules.example.json](../config/schedules.example.json)。`/schedule` 只读取该表；没有安装定时器、生成系统任务或启用云任务。`/resume` 仅恢复手动合成运行。
+中央调度注册表仍是 [schedules.example.json](../config/schedules.example.json)。`/schedule` 只读取该表，新增[手动计划](manual-plans.md)由该表引用配置。没有安装定时器、系统任务或云任务；`/resume` 仅恢复手动合成运行。`/workbench` 明确启动本地前台界面，`/console` 保留为[兼容快照](console-snapshot.md)。
 
 私人目录只保存 `inbox/` 笔记、`state/tasks.json`、`resources/drafts/` 草稿、`audit/events.jsonl` 与设置。审计不复制笔记正文。任务记录包含策略版本、适配器、幂等键、状态和相对产物路径，便于其他 agent 理解与接管。
 
@@ -51,6 +52,8 @@ CLI 只启用内置合成适配器。Python 接口支持注入另一个受信任
 
 ```sh
 python3 -B tests/acceptance.py
+python3 -B tests/plans_acceptance.py
+python3 -B tests/workbench_acceptance.py
 node tests/console_preview.js
 python3 -B scripts/check_public.py
 ```

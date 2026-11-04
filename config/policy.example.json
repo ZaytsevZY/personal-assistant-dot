@@ -35,7 +35,7 @@
     "feishu": {"implemented": false, "account_context_required": true},
     "dot": {"implemented": false, "external_push_support": "unverified"},
     "apple_calendar": {"implemented": false, "target_from_private_config": true},
-    "desktop_console": {"implemented": true, "mode": "read_only_snapshot", "default_access": "local_only"},
+    "desktop_console": {"implemented": true, "mode": "interactive_loopback", "default_access": "local_only"},
     "market_data": {"implemented": false, "optional": true, "trading": false}
   },
   "publication": {"automatic_commits": false, "automatic_pushes": false},
