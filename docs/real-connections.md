@@ -9,8 +9,8 @@
 | 官方公开 RSS | CLI 与工作台均可手动获取 | 有真实只读验证；没有独立事实核查或重大新闻完整性保证 |
 | 飞书 profile 状态 | 显式选择已有 CLI profile，脱敏返回凭据状态 | 本地状态检查，不代表服务器令牌或消息读取成功 |
 | 飞书单会话读取 | CLI 已实现，显式 profile、会话 ID 和七天以内窗口 | 只做合成测试；真实账号需要已授权且可用的 user 身份 |
-| Apple 日历权限 | EventKit 原生只读探测，不请求访问 | 在 Mac 验证；界面能看到日历不代表脚本有权限 |
-| Apple 日历读取 | 已获系统权限时可在 CLI 列日历、按 ID 读取 | 合成参数测试；未获授权的环境不读取真实日程 |
+| Apple 日历权限 | 固定身份应用；状态不请求，独立 CLI 可显式发起授权 | 只有用户能处理系统完整访问提示；界面可见不代表应用获权 |
+| Apple 日历读取 | 完整授权后可列日历、按 ID 限窗读取或仅验证数量 | 代码与本机授权分开验证；未授权时拒绝读取 |
 | 消息发送、日程写入 | 未实现、未开放 | 没有发送或创建测试，没有后台自动投递 |
 
 ## 公开新闻：点击才联网
@@ -51,21 +51,36 @@ python3 -B -m assistant_dot --private-root "<private-root>" /feishu-read --profi
 
 凭据不是 ready/available 时拒绝读取，不自动登录或刷新。CLI API 本身的既有令牌管理仍由其控制；本项目不扩大 scope。具体账号的可读范围、服务器令牌有效性和个人 profile 尚需用户在自己的环境核实。连接器缺权限时应停下说明，不能换账号或机器人补读。
 
-## Apple 日历：权限与目标分开
+## Apple 日历：固定应用身份，明确授权
+
+项目自有的 **Personal Assistant Calendar Reader** 应用使用 bundle ID `org.personalassistantdot.calendarreader`。需要 macOS 14+、系统 Swift 工具链与 codesign。先构建，再按明确同意的范围授权；构建本身不会启动应用、请求权限或读取日程。
 
 ```sh
+python3 -B scripts/build_calendar_reader.py
 python3 -B -m assistant_dot /calendar-status
+# 明确同意系统完整访问后，才手动执行下一条：
+python3 -B -m assistant_dot /calendar-authorize
+```
+
+默认安装在系统 Shared 目录中的 `PersonalAssistantDot-<uid>` 专用子目录：目录与应用仅当前用户可访问，不用它共享私人数据。该位置仍须在所有 Git 工作树之外。构建器不会覆盖现有应用或 receipt。更新原生代码时，应先关闭应用，将旧应用和 receipt 移到 Git 树外的私人备份目录，再重新构建；有需要可恢复成对备份。不要删除系统授权数据库或绕过 Gatekeeper。若系统拦截，应停止并报告。
+
+应用是本机 ad-hoc 签名，未公证；不是具有开发者证书的通用分发包。固定名称和 bundle ID 可以清楚标识请求应用，不能保证重新编译后继承 TCC 权限。更新可能需要用户重新核对系统权限。客户端每次检查应用身份、所有者权限、源码清单、签名与二进制摘要；不匹配时拒绝启动，不能用新源码冒用旧应用。
+
+`/calendar-authorize` 先探测权限；仅 `not_determined` 时启动授权窗口，由用户亲自处理 macOS 提示。被拒绝、受限制或仅写权限时不会重复弹窗，而是报告需要在系统设置核对。授权分支不读取日历或日程。工作台没有授权 API；状态按钮只查询权限，不弹授权请求。
+
+macOS 的[完整日历访问](https://developer.apple.com/documentation/eventkit/ekeventstore/requestfullaccesstoevents(completion:))包含读写能力；不能称其为系统“只读授权”。应用说明使用 [NSCalendarsFullAccessUsageDescription](https://developer.apple.com/documentation/bundleresources/information-property-list/nscalendarsfullaccessusagedescription)。项目只实现读取，不包含新增、修改或删除日程方法，也不联网。读取之前再次检查授权，未获得完整访问时拒绝读取。
+
+```sh
 python3 -B -m assistant_dot --private-root "<private-root>" /calendar-calendars
+python3 -B -m assistant_dot --private-root "<private-root>" /calendar-verify --calendar-id CALENDAR_ID --since START_ISO --until END_ISO
 python3 -B -m assistant_dot --private-root "<private-root>" /calendar-events --calendar-id CALENDAR_ID --since START_ISO --until END_ISO
 ```
 
-Mac 通过自有 Swift/EventKit 桥接；需要系统 Swift 工具链。每次编译缓存位于独立临时目录，结束清理。状态查询只调用授权状态 API，不读取日历或请求访问。读取函数先检查已有系统授权，未授权、被拒绝、受限制或仅写权限时拒绝读取。
+读取需要仓库外已初始化的私人目录。日历可能重名，列表包含来源标题与类型，只在本地 CLI 返回；用户明确核对来源和日历 ID，不默认选取某个账号或同名日历。原生 `resolve` 操作可按用户明确提供的来源和标题精确匹配，只返回匹配数与 ID；多项匹配时不得自动选择。
 
-日历名称可能重名，列表包含来源标题与类型，只在本地 CLI 返回。必须由用户核对账户与日历，并主动选择 ID；没有默认选择“个人”或任何其他同名日历。只读所选日历最多七天、200 条事件，保留时区与全天标记；不读取参与者、地点、备注和会议链接，不创建、修改或删除任何事件。列表及事件只在本地 CLI 返回，不进入网页、Git 或模型调用。
+窗口必须带时区、精确到秒且最多七天。`/calendar-verify` 仅返回命中数量和窗口长度，不返回事件正文；零条也明确报告为空。`/calendar-events` 最多返回 200 条标题、起止时间与全天标记，不序列化参与者、地点、备注和会议链接。EventKit 会在本地进程中取回匹配事件对象，因此数量验证也属于真实日历读取，必须在同意范围内。
 
-Apple 的 EventKit 读取通常需要系统完整访问权限，该权限包含读写能力；本项目桥接只实现读取，不能将代码边界描述成系统授予的“只读权限”。[Apple 授权状态说明](https://developer.apple.com/documentation/EventKit/EKAuthorizationStatus)区分 fullAccess、writeOnly 等状态。应用身份、签名与权限归属取决于实际宿主；当前命令行桥接没有签名应用打包或授权请求入口，不能保证在别的宿主直接继承权限。
-
-若状态为 `not_determined`，真实读取仍未接通。下一步需先确定稳定的本地应用身份及访问范围，并由用户明确同意后在 Mac 完成系统授权；不能用打开 Calendar 界面、AppleScript 或其他权限通道绕过。没有创建 App 密码、上传 iCloud 凭据或改系统设置。
+客户端通过 LaunchServices 运行同一应用，结果文件位于一次性的所有者私有临时目录，结束后清理；原生读取进程自带 15 秒时限。超时或结果失败需报告不确定状态，不自动重试授权或改用其他权限通道。日历列表、匹配 ID 和事件不进入网页、Git、模型调用或其他服务；CLI 输出不要重定向至仓库、共享终端或公开日志。没有 App 密码、iCloud 凭据复制、日程写入或自动运行。
 
 ## 执行边界
 

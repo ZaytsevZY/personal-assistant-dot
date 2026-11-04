@@ -13,6 +13,7 @@ from .news import bundled_preview, REFERENCE_AT
 from .live_news import fetch_public_news
 from .news_sources import source_catalog
 from .connections import feishu_status, feishu_messages, apple_calendar
+from .calendar_helper import CalendarHelper
 
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -42,8 +43,10 @@ HELP = {
         "/feishu-status --profile NAME": "inspect selected existing CLI profile locally; no login, switch or message read",
         "/feishu-read --profile NAME --chat-id ID --since ISO --until ISO": "explicit one-chat read, at most 7 days/20 messages; private root required; no send",
         "/calendar-status": "inspect EventKit permission without requesting access or reading events",
+        "/calendar-authorize": "explicitly launch the verified local app; only the human can approve macOS full calendar access",
         "/calendar-calendars": "read local calendar identifiers only if already authorized; private root required",
         "/calendar-events --calendar-id ID --since ISO --until ISO": "read one chosen calendar, at most 7 days/200 events; private root required",
+        "/calendar-verify --calendar-id ID --since ISO --until ISO": "verify a bounded chosen calendar read, returning count only; private root required",
     },
     "not_configured": ["natural_language_agent", "comprehensive_news_search", "feishu_send", "dot_push", "calendar_write", "market_data", "background_scheduler"],
 }
@@ -91,6 +94,8 @@ def command(arguments, private_root=None):
         return feishu_status(options["--profile"])
     if name == "/calendar-status" and not rest:
         return apple_calendar(PROJECT)
+    if name == "/calendar-authorize" and not rest:
+        return CalendarHelper(PROJECT).authorize()
     if name in {"/news", "/calendar", "/market", "/review"}:
         return {"status": "not_configured", "command": name, "external_actions_performed": False}
     if name in {"/plans", "/plans-preview"}:
@@ -107,21 +112,21 @@ def command(arguments, private_root=None):
             options = flags(rest, {"--at", "--since"}, ("--at", "--since"))
             return preview(config, options["--since"], options["--at"])
         raise LocalError("invalid plan command arguments; use /h")
-    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench", "/feishu-read", "/calendar-calendars", "/calendar-events"}:
+    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench", "/feishu-read", "/calendar-calendars", "/calendar-events", "/calendar-verify"}:
         raise LocalError("command is not implemented; use /h")
     if not private_root:
         raise LocalError("--private-root is required; no default private directory is created")
     store = PrivateStore(private_root, PROJECT)
-    if name in {"/feishu-read", "/calendar-calendars", "/calendar-events"}:
+    if name in {"/feishu-read", "/calendar-calendars", "/calendar-events", "/calendar-verify"}:
         TaskRunner(store).settings()
         if name == "/feishu-read":
             options = flags(rest, {"--profile", "--chat-id", "--since", "--until"}, ("--profile", "--chat-id", "--since", "--until"))
             return feishu_messages(options["--profile"], options["--chat-id"], options["--since"], options["--until"])
         if name == "/calendar-calendars" and not rest:
             return apple_calendar(PROJECT, "calendars")
-        if name == "/calendar-events":
+        if name in {"/calendar-events", "/calendar-verify"}:
             options = flags(rest, {"--calendar-id", "--since", "--until"}, ("--calendar-id", "--since", "--until"))
-            return apple_calendar(PROJECT, "events", options["--calendar-id"], options["--since"], options["--until"])
+            return apple_calendar(PROJECT, "verify" if name == "/calendar-verify" else "events", options["--calendar-id"], options["--since"], options["--until"])
         raise LocalError("invalid read-only connection command")
     if name == "/workbench":
         from .workbench import serve

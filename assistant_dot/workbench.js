@@ -325,7 +325,7 @@ byId("inspect-calendar").addEventListener("click",() => action(async () => {
   byId("connection-result").textContent = "正在检查 EventKit 权限，不会弹出授权请求或读取日程。";
   const result = await api("/api/calendar/status",{});
   const labels = {not_determined:"尚未授权",denied:"权限已拒绝",restricted:"系统限制",write_only:"仅写权限，不能读取",full_access:"系统完整访问权限已存在",authorized:"系统访问权限已存在",unknown:"未知"};
-  byId("connection-result").textContent = "Apple 日历：" + (labels[result.authorization] || "桥接程序不可用或当前不是 Mac") + "；没有请求权限、读取日程或创建事件。";
+  byId("connection-result").textContent = "Apple 日历：" + (labels[result.authorization] || "日历读取应用未安装、校验失败或当前不是 Mac") + "；没有请求权限、读取日程或创建事件。";
 }));
 
 byId("feishu-profile").addEventListener("input",() => { byId("connection-result").textContent = "profile 已修改，尚未检查；没有切换默认账号。"; });

@@ -29,3 +29,7 @@ __pycache__/
 node_modules/
 dist/
 build/
+
+# Native applications and installation receipts never belong in public Git.
+*.app/
+*.receipt.json

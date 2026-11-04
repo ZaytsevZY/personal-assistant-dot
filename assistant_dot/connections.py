@@ -2,15 +2,14 @@
 
 from datetime import timedelta
 import json
-from pathlib import Path
 import re
 import shutil
 import sys
-import tempfile
 
 from .plans import timestamp
 from .process import bounded_process
 from .storage import LocalError
+from .calendar_helper import CalendarHelper
 
 
 def profile_name(value):
@@ -71,7 +70,7 @@ def apple_calendar(project, action="status", calendar_id=None, start=None, end=N
     if sys.platform != "darwin":
         return {"status": "macos_required", "requested_access": False}
     args = [action]
-    if action == "events":
+    if action in {"events", "verify"}:
         if not isinstance(calendar_id, str) or not 1 <= len(calendar_id) <= 200 or any(ord(c) < 32 for c in calendar_id):
             raise LocalError("an explicit calendar ID is required; names do not select an account")
         first, last = timestamp(start), timestamp(end)
@@ -83,14 +82,7 @@ def apple_calendar(project, action="status", calendar_id=None, start=None, end=N
         args.extend([calendar_id, first.isoformat(), last.isoformat()])
     elif action not in {"status", "calendars"}:
         raise LocalError("calendar action is not implemented")
-    script = Path(project) / "scripts/calendar_bridge.swift"
-    if script.is_symlink() or not script.is_file() or not Path("/usr/bin/swift").is_file():
-        return {"status": "bridge_unavailable", "requested_access": False}
     try:
-        with tempfile.TemporaryDirectory(prefix="assistant-calendar-modules-") as cache:
-            result = json.loads(execute(["/usr/bin/swift", "-module-cache-path", cache, str(script), *args], timeout=40, limit=262144))
-        if not isinstance(result, dict):
-            raise ValueError()
-        return result
+        return CalendarHelper(project, execute=execute).invoke(args)
     except (LocalError, ValueError, OSError):
-        return {"status": "bridge_unavailable", "requested_access": False, "raw_errors_returned": False}
+        return {"status": "helper_unavailable", "requested_access": False, "raw_errors_returned": False}

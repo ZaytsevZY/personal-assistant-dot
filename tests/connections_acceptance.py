@@ -50,23 +50,22 @@ def main():
         assert not any("send" in part or part == "use" for call in calls for part in call)
         print("PASS: bounded one-chat read arguments, selected identity and no send/download path")
 
-    with patch("assistant_dot.connections.sys.platform","darwin"), patch("assistant_dot.connections.Path.is_file",return_value=True), patch("assistant_dot.connections.Path.is_symlink",return_value=False):
-        def native(args,**kwargs):
-            calls.append(args)
-            return b'{"authorization":"not_determined","readable":false,"requested_access":false,"writes_implemented":false}'
-        status=apple_calendar(PROJECT,execute=native)
-        assert status["requested_access"] is False and calls[-1][-1] == "status"
-        assert "-module-cache-path" in calls[-1]
-        rejected(lambda:apple_calendar(PROJECT,"request-access",execute=native))
-        rejected(lambda:apple_calendar(PROJECT,"events",None,"2026-01-15T00:00:00Z","2026-01-16T00:00:00Z",execute=native))
-        rejected(lambda:apple_calendar(PROJECT,"events","synthetic-calendar","2026-01-01T00:00:00Z","2026-01-16T00:00:00Z",execute=native))
-        assert apple_calendar(PROJECT,"events","synthetic-calendar","2026-01-15T00:00:00Z","2026-01-16T00:00:00Z",execute=native)["readable"] is False
-        assert calls[-1][-4:] == ["events","synthetic-calendar","2026-01-15T00:00:00+00:00","2026-01-16T00:00:00+00:00"]
+    with patch("assistant_dot.connections.sys.platform","darwin"), patch("assistant_dot.connections.CalendarHelper") as helper:
+        helper.return_value.invoke.return_value={"authorization":"not_determined","readable":False,"requested_access":False}
+        status=apple_calendar(PROJECT)
+        assert status["requested_access"] is False
+        helper.return_value.invoke.assert_called_once_with(["status"])
+        helper.return_value.authorize.assert_not_called()
+        rejected(lambda:apple_calendar(PROJECT,"request-access"))
+        rejected(lambda:apple_calendar(PROJECT,"events",None,"2026-01-15T00:00:00Z","2026-01-16T00:00:00Z"))
+        rejected(lambda:apple_calendar(PROJECT,"events","synthetic-calendar","2026-01-01T00:00:00Z","2026-01-16T00:00:00Z"))
+        assert apple_calendar(PROJECT,"verify","synthetic-calendar","2026-01-15T00:00:00Z","2026-01-16T00:00:00Z")["readable"] is False
+        helper.return_value.invoke.assert_called_with(["verify","synthetic-calendar","2026-01-15T00:00:00+00:00","2026-01-16T00:00:00+00:00"])
     bridge=(PROJECT/"scripts/calendar_bridge.swift").read_text()
     assert "requestFullAccess" not in bridge and "requestAccess(" not in bridge and ".save(" not in bridge and ".remove(" not in bridge
     rejected(lambda:command(["/calendar-calendars"]))
     rejected(lambda:command(["/feishu-read","--profile","synthetic-work"]))
-    print("PASS: native permission guard, explicit calendar/window, isolated compiler cache and private CLI boundary")
+    print("PASS: native permission guard, explicit calendar/window, stable application identity and private CLI boundary")
     print("PASS: 3 connection acceptance groups; synthetic processes only")
 
 
