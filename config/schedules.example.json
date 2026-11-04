@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "registry_mode": "single_project_registry",
+  "scheduler_implemented": false,
+  "backend": null,
+  "timezone": null,
+  "output_channel": null,
+  "private_override_required_before_enable": true,
+  "tasks": [
+    {
+      "id": "daily-news",
+      "enabled": false,
+      "cadence": "daily",
+      "local_time": null,
+      "workflow_prompt": "prompts/news-brief.md",
+      "late_run_policy": "merge_still_relevant_items",
+      "delivery": "private_channel_after_verification"
+    },
+    {
+      "id": "weekly-open-source-review",
+      "enabled": false,
+      "cadence": "weekly",
+      "weekday": null,
+      "local_time": null,
+      "workflow_prompt": "prompts/open-source-review.md",
+      "late_run_policy": "run_once_with_actual_cutoff",
+      "delivery": "private_channel_after_verification"
+    }
+  ]
+}

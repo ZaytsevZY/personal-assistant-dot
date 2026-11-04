@@ -1,0 +1,22 @@
+{
+  "synthetic_example": true,
+  "id": "synthetic-news-001",
+  "event_cluster_id": "synthetic-event-001",
+  "title": "Synthetic agency announces a proposed research program",
+  "topic": "technology",
+  "lane": "major_public",
+  "event_time": null,
+  "published_at": null,
+  "retrieved_at": null,
+  "status": "proposal_not_effective_policy",
+  "facts": ["Synthetic example only: an announcement was made."],
+  "interpretation": "Potential effects would require further evidence.",
+  "uncertainties": ["No real event or source is represented."],
+  "sources": [
+    {"url": "https://example.org/announcement", "kind": "primary", "origin_chain_id": "synthetic-chain-001"}
+  ],
+  "verification": "synthetic_single_source",
+  "personal_relevance": null,
+  "correction_of": null,
+  "policy_version": "0.1.0-draft"
+}

@@ -1,0 +1,14 @@
+{
+  "synthetic_example": true,
+  "item_id": "synthetic-item-001",
+  "policy_version": "0.1.0-draft",
+  "feedback": "too_detailed",
+  "scope": "format",
+  "explicit": true,
+  "reason": "Synthetic example: prefer a shorter explanation for this topic.",
+  "recorded_at": null,
+  "expires_at": null,
+  "proposed_change": null,
+  "user_approved_change": false,
+  "storage": "private_root_only_when_instantiated"
+}

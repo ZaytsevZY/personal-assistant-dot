@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "status": "seed_homepages_not_fetch_adapters",
+  "access_and_license_review_required": true,
+  "sources": [
+    {"id": "un", "url": "https://news.un.org/", "role": "institutional_primary", "topics": ["politics"], "perspective": "UN institutional"},
+    {"id": "reuters", "url": "https://www.reuters.com/", "role": "independent_reporting", "topics": ["politics", "economics", "technology"], "perspective": "international newsroom"},
+    {"id": "ap", "url": "https://apnews.com/", "role": "independent_reporting", "topics": ["politics", "economics", "technology"], "perspective": "international newsroom"},
+    {"id": "bbc", "url": "https://www.bbc.com/news", "role": "reporting", "topics": ["politics", "economics", "technology"], "perspective": "UK public broadcaster"},
+    {"id": "stats-cn", "url": "https://www.stats.gov.cn/", "role": "official_statistics", "topics": ["economics"], "perspective": "China official statistics"},
+    {"id": "imf", "url": "https://www.imf.org/", "role": "institutional_primary", "topics": ["economics"], "perspective": "multilateral institution"},
+    {"id": "world-bank", "url": "https://www.worldbank.org/", "role": "institutional_primary", "topics": ["economics"], "perspective": "multilateral institution"},
+    {"id": "eurostat", "url": "https://ec.europa.eu/eurostat", "role": "official_statistics", "topics": ["economics"], "perspective": "EU official statistics"},
+    {"id": "nasa", "url": "https://www.nasa.gov/", "role": "institutional_primary", "topics": ["technology"], "perspective": "US space agency"},
+    {"id": "arxiv", "url": "https://arxiv.org/", "role": "research_preprints", "topics": ["technology"], "perspective": "author submitted research, not necessarily peer reviewed"},
+    {"id": "github-releases", "url": "https://github.com/", "role": "project_primary", "topics": ["technology"], "perspective": "maintainer claims; configure selected project releases"}
+  ],
+  "notes": [
+    "Seed list is incomplete; add relevant regional and language sources after review.",
+    "Different domains do not guarantee independent underlying reporting.",
+    "Official statements must be attributed; do not equate them with verified facts.",
+    "Homepages do not imply feed support, automation rights, market data licenses or availability."
+  ]
+}

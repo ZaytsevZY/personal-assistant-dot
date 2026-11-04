@@ -1,0 +1,17 @@
+{
+  "synthetic_example": true,
+  "contract_version": "agent-runtime.v1-draft",
+  "task_id": "synthetic-task-001",
+  "workflow_id": "daily-news",
+  "workflow_version": "0.1.0-draft",
+  "policy_version": "0.1.0-draft",
+  "idempotency_key": "synthetic-001",
+  "state": "draft",
+  "input": {"public_prompt": "prompts/news-brief.md", "private_context_ref": null},
+  "authorization_ref": null,
+  "permission_ceiling": ["read_public_sources", "produce_private_draft"],
+  "budget_ref": null,
+  "not_after": null,
+  "checkpoint_ref": null,
+  "output": {"artifact_refs": [], "evidence_refs": [], "verified_side_effects": []}
+}

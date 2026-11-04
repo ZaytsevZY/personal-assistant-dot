@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "policy_version": "0.1.0-draft",
+  "project_name": "personal-assistant-dot",
+  "mode": "design_only",
+  "schedules_file": "config/schedules.example.json",
+  "sources_file": "config/sources.example.json",
+  "runtime_file": "config/runtime.example.json",
+  "privacy": {
+    "private_root": null,
+    "private_root_must_be_outside_repository": true,
+    "training_on_private_data": false,
+    "public_user_profiles": false
+  },
+  "news": {
+    "required_coverage": ["politics", "economics", "technology"],
+    "allocation": {"major_public": 0.6, "personal_relevant": 0.25, "exploration": 0.15},
+    "major_news_overrides_allocation": true,
+    "major_news_floor_cannot_be_learned_away": true,
+    "independent_sources_target": 2,
+    "single_source_requires_label": true,
+    "timestamp_and_source_required": true
+  },
+  "personalization": {
+    "enabled": false,
+    "explicit_preferences_only": true,
+    "sensitive_trait_inference": false,
+    "no_response_is_negative_feedback": false,
+    "change_mode": "proposal_then_user_choice",
+    "auditable_versions": true,
+    "rollback_required": true
+  },
+  "integrations": {
+    "feishu": {"implemented": false, "account_context_required": true},
+    "dot": {"implemented": false, "external_push_support": "unverified"},
+    "apple_calendar": {"implemented": false, "target_from_private_config": true},
+    "desktop_console": {"implemented": false, "default_access": "local_only"},
+    "market_data": {"implemented": false, "optional": true, "trading": false}
+  },
+  "publication": {"automatic_commits": false, "automatic_pushes": false},
+  "limits": {"model_call_budget": null, "spend_budget": null, "notification_budget": null}
+}

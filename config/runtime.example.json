@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "design_only",
+  "contract_version": "agent-runtime.v1-draft",
+  "control_host": {"initial_choice": "dot", "active_adapter": null, "replaceable": true},
+  "execution_agent": {"active_adapter": null, "replaceable": true},
+  "model_service": {"active_adapter": null, "replaceable": true},
+  "scheduler_backend": {"active_adapter": null, "replaceable": true},
+  "output_channel": {"active_adapter": null, "replaceable": true},
+  "portable_state": {
+    "format": ["markdown", "json"],
+    "private_root": null,
+    "platform_memory_is_source_of_truth": false,
+    "preserve_task_ids_and_idempotency_keys_on_switch": true
+  },
+  "adapter_requirements": {
+    "report_capabilities": true,
+    "report_verified_side_effects": true,
+    "shared_core_policy_required": true,
+    "selection_grants_permissions": false,
+    "vendor_specific_state_location": "private_adapter_state"
+  }
+}
