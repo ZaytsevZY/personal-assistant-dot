@@ -46,10 +46,11 @@ function isoInput(id) {
 }
 
 function controls() {
-  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,#preview-news,[data-run],[data-plan-run]")) button.disabled = busy;
+  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,#preview-news,#fetch-public-news,#inspect-feishu,#inspect-calendar,[data-run],[data-plan-run]")) button.disabled = busy;
   if (state) for (const button of document.querySelectorAll("[data-run],[data-plan-run]")) button.disabled = busy || state.settings.paused;
   for (const id of ["since","at"]) byId(id).disabled = busy;
   byId("news-at").disabled = busy;
+  byId("feishu-profile").disabled = busy;
   for (const input of document.querySelectorAll('[name="news-interest"]')) input.disabled = busy;
 }
 
@@ -137,6 +138,7 @@ async function refresh() {
   occurrences("occurrence-rows",state.occurrences,true);
   clearPreview();
   clearNews();
+  clearPublicNews();
   if (!byId("news-at").value) byId("news-at").value = state.news_preview.reference_at.slice(0,16);
 }
 
@@ -239,3 +241,59 @@ for (const id of ["since","at"]) byId(id).addEventListener("input",clearPreview)
 byId("at").value = clock.toISOString().slice(0,16);
 byId("since").value = new Date(clock.getTime() - 24*60*60*1000).toISOString().slice(0,16);
 action(refresh);
+
+function clearPublicNews() {
+  byId("public-news-result").hidden = true;
+  byId("public-news-summary").textContent = "";
+}
+
+function renderPublicNews(result) {
+  const coverage = byId("public-news-coverage");
+  coverage.replaceChildren();
+  for (const [topic,value] of Object.entries(result.coverage)) {
+    const card = node(coverage,"article","","module");
+    node(card,"h4",topicLabels[topic]);
+    node(card,"p",value.candidates + " 条近 7 天待审候选");
+    node(card,"p","重大性未评估，覆盖未核实","small muted");
+  }
+  byId("public-news-summary").textContent = "分析截止：" + result.as_of + "；真实公开源手动获取，不保存、不投递。";
+  byId("public-news-sources").textContent = result.sources.map(source => source.name + "：" + (source.status === "fetched" ? "已获取，合格候选 " + source.candidates + "，无效/过期/未来 " + source.filtered.invalid + "/" + source.filtered.stale + "/" + source.filtered.future : "不可用；网络、证书、上游或格式可能异常，没有视为零新闻")).join("；");
+  const articles = byId("public-news-articles");
+  articles.replaceChildren();
+  if (!result.articles.length) node(articles,"p","没有符合条件的候选。来源失败或无近期结果，不代表没有重大新闻。","muted");
+  for (const item of result.articles) {
+    const card = node(articles,"article","","news-card");
+    node(card,"span",topicLabels[item.topic] + " · " + item.source_name,"badge");
+    const heading = node(card,"h4","");
+    const link = node(heading,"a",item.title);
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    node(card,"p","发布：" + item.published_at + "；获取：" + item.retrieved_at,"small muted");
+    node(card,"p","来源标题，未经独立事实核查；事件日期未知，重大性未评估。","small");
+  }
+  byId("public-news-result").hidden = false;
+}
+
+byId("fetch-public-news").addEventListener("click",() => action(async () => {
+  clearPublicNews();
+  byId("public-news-summary").textContent = "正在手动获取三个固定官方来源；不访问账号或私人资料。";
+  renderPublicNews(await api("/api/news/fetch",{}));
+  message("官方 RSS 获取已结束；请查看每个来源状态，结果没有保存或发送。");
+}));
+
+byId("inspect-feishu").addEventListener("click",() => action(async () => {
+  const profile = byId("feishu-profile").value;
+  byId("connection-result").textContent = "正在检查明确选择的 profile；不读取消息或切换默认账号。";
+  const result = await api("/api/feishu/status",{profile});
+  const statuses = {ready:"本地凭据可用",needs_refresh:"需要用户刷新授权",not_configured:"未配置",expired:"已过期",missing:"缺少凭据",unknown:"未知"};
+  byId("connection-result").textContent = result.status === "local_credentials_inspected" ? "飞书 profile " + result.profile + "；机器人：" + statuses[result.identities.bot.status] + "；用户：" + statuses[result.identities.user.status] + "。仅本地检查，未验证服务器访问，没有发送或读取消息。" : "飞书 CLI 或所选配置不可用；没有自动登录、刷新授权或切换账号。";
+}));
+byId("inspect-calendar").addEventListener("click",() => action(async () => {
+  byId("connection-result").textContent = "正在检查 EventKit 权限，不会弹出授权请求或读取日程。";
+  const result = await api("/api/calendar/status",{});
+  const labels = {not_determined:"尚未授权",denied:"权限已拒绝",restricted:"系统限制",write_only:"仅写权限，不能读取",full_access:"系统完整访问权限已存在",authorized:"系统访问权限已存在",unknown:"未知"};
+  byId("connection-result").textContent = "Apple 日历：" + (labels[result.authorization] || "桥接程序不可用或当前不是 Mac") + "；没有请求权限、读取日程或创建事件。";
+}));
+
+byId("feishu-profile").addEventListener("input",() => { byId("connection-result").textContent = "profile 已修改，尚未检查；没有切换默认账号。"; });

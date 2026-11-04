@@ -5,6 +5,8 @@
   "manual_planning": {"implemented": true, "automatic_execution": false, "registry_file": "config/schedules.example.json"},
   "workbench": {"implemented": true, "bind": "127.0.0.1", "foreground_only": true},
   "news_preview": {"implemented": true, "adapter": "synthetic", "network_enabled": false, "persisted": false, "fixture_file": "templates/news-feed.example.json"},
+  "public_news": {"implemented": true, "mode": "manual_fixed_sources", "accounts": false, "persisted": false, "automatic": false},
+  "readonly_connections": {"feishu": "explicit_existing_cli_profile", "apple_calendar": "existing_eventkit_authorization_only", "profile": null, "calendar_id": null, "writes": false, "request_permissions": false},
   "contract_version": "agent-runtime.v1-draft",
   "control_host": {"initial_choice": "dot", "active_adapter": null, "replaceable": true},
   "execution_agent": {"active_adapter": null, "replaceable": true},

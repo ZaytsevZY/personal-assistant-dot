@@ -6,11 +6,14 @@ from pathlib import Path
 import secrets
 from urllib.parse import urlsplit
 from uuid import UUID
+from threading import Lock
 
 from .plans import PlanEngine, load_plans, preview
 from .runtime import TaskRunner
 from .storage import LocalError
 from .news import bundled_preview, REFERENCE_AT, TOPICS, POLICY_VERSION
+from .live_news import fetch_public_news
+from .connections import feishu_status, apple_calendar
 
 
 ASSETS = Path(__file__).resolve().parent
@@ -39,6 +42,7 @@ class WorkbenchServer(ThreadingHTTPServer):
         self.runner.settings()
         self.engine = PlanEngine(store, project, self.runner)
         self.token = secrets.token_hex(32)
+        self.server_news_lock = Lock()
         super().__init__(("127.0.0.1", port), WorkbenchHandler)
         self.host = "127.0.0.1:" + str(self.server_address[1])
         self.origin = "http://" + self.host
@@ -55,9 +59,25 @@ class WorkbenchServer(ThreadingHTTPServer):
                 "limits": {"task_rows": 100, "plan_rows": 100},
                 "news_preview": {"implemented": True, "mode": "synthetic_preview", "reference_at": REFERENCE_AT,
                                  "topics": list(TOPICS), "policy_version": POLICY_VERSION, "live_news": False},
-                "unavailable": ["background_scheduler", "live_news", "feishu", "dot_push", "calendar", "market_data"]}
+                "public_news": {"implemented": True, "mode": "manual_fixed_public_feeds", "fact_checking": False},
+                "connections": {"feishu": "explicit_profile_status_and_cli_read", "apple_calendar": "permission_guarded_cli_read", "writes": False},
+                "unavailable": ["background_scheduler", "news_fact_checking", "feishu_send", "dot_push", "calendar_write", "market_data"]}
 
     def action(self, route, data):
+        if route == "/api/feishu/status":
+            fields(data, ("profile",))
+            return feishu_status(data["profile"])
+        if route == "/api/calendar/status":
+            fields(data, ())
+            return apple_calendar(self.project)
+        if route == "/api/news/fetch":
+            fields(data, ())
+            if not self.server_news_lock.acquire(blocking=False):
+                raise LocalError("public news request already in progress")
+            try:
+                return fetch_public_news()
+            finally:
+                self.server_news_lock.release()
         if route == "/api/news/preview":
             fields(data, ("at", "interests"))
             return bundled_preview(self.project, data["at"], data["interests"])
@@ -172,7 +192,7 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         if not self._allowed(api=True, write=True):
             self._reply(403, {"status": "error", "message": "local request rejected"})
             return
-        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run", "/api/news/preview"}
+        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run", "/api/news/preview", "/api/news/fetch", "/api/feishu/status", "/api/calendar/status"}
         if self.path not in routes:
             self._reply(404, {"status": "error", "message": "action not found"})
             return

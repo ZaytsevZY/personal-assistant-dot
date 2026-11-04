@@ -2,13 +2,13 @@
 
 一个本地优先、可审计、由用户控制的个人助手项目。把生活与工作流程、新闻发现、开源调研和推荐反馈放进同一套可持续改进的方法中。
 
-**状态：已有可运行的本地交互工作台**，支持状态查看、私人笔记命令、合成任务、手动计划、持久账本与新闻推荐合成预览；真实新闻、模型、账号渠道及后台调度仍未接入。没有内置个人资料。
+**状态：已有可运行的本地交互工作台**，支持状态查看、私人笔记命令、合成任务、手动计划、持久账本与新闻推荐合成预览；另支持官方公开 RSS 手动获取，以及飞书显式 profile 与 Apple 日历的权限受限只读接口。模型、账号投递与后台调度仍未接入；真实账号读取受凭据、具体目标和系统授权限制。没有内置个人资料。
 
 项目最初由 dot 协助开发和管理，dot 也可以成为初期主控制入口。名称保留这个起点，但核心策略、数据、提示词和调度契约不依赖 dot；后续可以换成其他 agent。控制入口、执行 agent 和输出渠道分别配置，见[agent 可替换设计](docs/agent-portability.md)。
 
 ## 从哪里开始
 
-macOS / Linux、Python 3.9+，无需第三方依赖。在仓库根目录先运行：
+macOS / Linux、Python 3.9+；核心无需第三方 Python 包。真实 RSS 需要系统 curl，飞书接口需要已有官方 lark-cli，Apple 日历需要 Mac 与 Swift/EventKit。在仓库根目录先运行：
 
 ```sh
 python3 -B -m assistant_dot /h
@@ -17,7 +17,7 @@ python3 -B -m assistant_dot /news-preview --interests technology
 python3 -B tests/acceptance.py
 ```
 
-要保存内容和运行演示，请按[本地最小版本](docs/local-mvp.md)选择仓库外、未被 Git 管理的私人目录并初始化。之后运行 `python3 -B -m assistant_dot --private-root "<private-root>" /workbench`，打开终端显示的本机地址。当前只运行合成工作流，不会获取真实新闻、调用模型、发送消息或创建日程。
+要保存内容和运行演示，请按[本地最小版本](docs/local-mvp.md)选择仓库外、未被 Git 管理的私人目录并初始化。之后运行 `python3 -B -m assistant_dot --private-root "<private-root>" /workbench`，打开终端显示的本机地址。当前只运行合成工作流，不会自动获取新闻、调用模型、发送消息或创建日程；只有明确点击或运行 `/news-fetch` 才读取固定官方 RSS。
 
 1. 阅读[助手工作说明](docs/charter.md)，确定助手如何记忆、建议和行动。
 2. 阅读[系统设计](docs/architecture.md)与[数据隔离](docs/privacy.md)，在仓库之外建立私人资料目录。
@@ -38,6 +38,7 @@ python3 -B tests/acceptance.py
 | 飞书 / dot 对话、命令与电脑控制台 | [入口设计](docs/interfaces.md) |
 | 经济与股票查询的可选范围 | [经济与市场扩展](docs/market-extension.md) |
 | 本地数据、备份和公开边界 | [隐私与发布](docs/privacy.md) |
+| 真实 RSS、飞书 profile 与 Apple 日历只读接口 | [真实连接](docs/real-connections.md) |
 | 可插拔合成来源、重大覆盖与兴趣推荐预览 | [新闻预览](docs/news-preview.md) |
 | 重大新闻、来源差异、事实与观点 | [信息发现](docs/discovery.md) |
 | 个性化、探索与推荐方向调整 | [推荐政策](docs/recommendations.md) |

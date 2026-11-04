@@ -32,9 +32,9 @@
     "rollback_required": true
   },
   "integrations": {
-    "feishu": {"implemented": false, "account_context_required": true},
+    "feishu": {"implemented": true, "mode": "explicit_profile_read_only", "send": false, "account_context_required": true},
     "dot": {"implemented": false, "external_push_support": "unverified"},
-    "apple_calendar": {"implemented": false, "target_from_private_config": true},
+    "apple_calendar": {"implemented": true, "mode": "permission_guarded_read_only", "write": false, "request_access": false, "target_from_private_config": true},
     "desktop_console": {"implemented": true, "mode": "interactive_loopback", "default_access": "local_only"},
     "market_data": {"implemented": false, "optional": true, "trading": false}
   },

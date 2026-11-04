@@ -1,6 +1,6 @@
 # 两种入口，共用一套状态
 
-本文件描述完整交互设计。当前已实现本地 CLI、`/workbench` 交互界面及 `/plans-*` 手动计划命令；详见[本地最小版本](local-mvp.md)、[工作台](local-console.md)与[计划账本](manual-plans.md)。飞书、dot 对话适配器、真实检索和后台执行尚未接入；表中其他外部能力仍是规划。
+本文件描述完整交互设计。当前已实现本地 CLI、`/workbench` 交互界面及 `/plans-*` 手动计划命令；详见[本地最小版本](local-mvp.md)、[工作台](local-console.md)与[计划账本](manual-plans.md)。飞书/dot 对话与投递适配器、完整新闻搜索和后台执行尚未接入；已有独立手动 RSS 与受权限限制的账号只读 CLI，详见[真实连接](real-connections.md)。表中其他外部能力仍是规划。
 
 ## 无需打开控制台的对话
 
@@ -9,6 +9,9 @@
 | 命令草案 | 用途 | 默认行为 |
 | --- | --- | --- |
 | `/h` 或 `/help` | 查询功能与语法 | 列出可用、未配置和规划中的功能 |
+| `/news-fetch` | 手动获取官方公开 RSS（已实现） | 固定来源、标题与日期，不保存或投递 |
+| `/feishu-status`、`/feishu-read` | 明确 profile 的只读 CLI 接口（已实现） | 状态脱敏；消息读取需明确会话、时间窗和有效 user 身份 |
+| `/calendar-status`、`/calendar-calendars`、`/calendar-events` | EventKit 权限与只读 CLI（已实现） | 不请求授权；已有权限、明确日历 ID 和时间窗才读取 |
 | `/news-preview` | 合成新闻手动预览（已实现） | 本次明确兴趣、重大覆盖、来源与日期；不保存、不联网 |
 | `/news [topic]` | 新闻与主题查询 | 返回带截止时间和来源的简报 |
 | `/capture <text>` | 收集想法或承诺 | 预览分类，按已有授权保存到私人目录 |

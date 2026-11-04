@@ -1,6 +1,6 @@
 # 本地最小版本
 
-当前实现：Python 命令、私人 JSON 存储、同步合成运行器、手动计划账本和[交互式本地工作台](local-console.md)。支持 macOS 和 Linux、Python 3.9+，只使用标准库与本机 IANA 时区数据。不包含真实新闻、模型、账号渠道或后台调度。
+当前实现：Python 命令、私人 JSON 存储、同步合成运行器、手动计划账本和[交互式本地工作台](local-console.md)。支持 macOS 和 Linux、Python 3.9+，只使用标准库与本机 IANA 时区数据。合成运行器不包含真实检索、模型、账号投递或后台调度；独立的[真实连接](real-connections.md)提供手动官方 RSS 与飞书/日历只读接口，不改变原运行器设置。
 
 ## 运行
 

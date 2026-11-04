@@ -10,6 +10,8 @@ from .console import export_console, load_schedule_registry
 from .storage import LocalError, PrivateStore, now
 from .plans import PlanEngine, load_plans, preview
 from .news import bundled_preview, REFERENCE_AT
+from .live_news import fetch_public_news
+from .connections import feishu_status, feishu_messages, apple_calendar
 
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -34,8 +36,14 @@ HELP = {
         "/plans-run ID [--at ISO]": "manually execute one eligible synthetic occurrence",
         "/workbench [--port NUMBER]": "run the interactive loopback workbench in the foreground; Ctrl-C stops it",
         "/news-preview [--at ISO] [--interests TOPIC,TOPIC]": "read-only synthetic news; explicit topics only for this preview; no profile saved",
+        "/news-fetch [--sources ID,ID]": "manually fetch fixed official public RSS feeds; no account, storage or delivery",
+        "/feishu-status --profile NAME": "inspect selected existing CLI profile locally; no login, switch or message read",
+        "/feishu-read --profile NAME --chat-id ID --since ISO --until ISO": "explicit one-chat read, at most 7 days/20 messages; private root required; no send",
+        "/calendar-status": "inspect EventKit permission without requesting access or reading events",
+        "/calendar-calendars": "read local calendar identifiers only if already authorized; private root required",
+        "/calendar-events --calendar-id ID --since ISO --until ISO": "read one chosen calendar, at most 7 days/200 events; private root required",
     },
-    "not_configured": ["natural_language_agent", "live_news", "feishu", "dot_push", "calendar", "market_data", "background_scheduler"],
+    "not_configured": ["natural_language_agent", "comprehensive_news_search", "feishu_send", "dot_push", "calendar_write", "market_data", "background_scheduler"],
 }
 
 
@@ -62,6 +70,7 @@ def command(arguments, private_root=None):
         return {"status": "local_only", "available_adapter": "synthetic", "private_store_checked": False, "agent_replaceable": True,
                 "console_mode": "interactive_loopback", "manual_planning": True,
                 "news_preview": "synthetic_read_only",
+                "manual_public_news": True, "network_flag_scope": "synthetic_task_runner",
                 "network_enabled": False, "delivery_enabled": False, "scheduler_enabled": False}
     if name == "/schedule" and not rest:
         registry = load_schedule_registry(PROJECT)
@@ -70,6 +79,14 @@ def command(arguments, private_root=None):
         options = flags(rest, {"--at", "--interests"})
         topics = options["--interests"].split(",") if options.get("--interests") else []
         return bundled_preview(PROJECT, options.get("--at", REFERENCE_AT), topics)
+    if name == "/news-fetch":
+        options = flags(rest, {"--sources"})
+        return fetch_public_news(options["--sources"].split(",") if "--sources" in options else None)
+    if name == "/feishu-status":
+        options = flags(rest, {"--profile"}, ("--profile",))
+        return feishu_status(options["--profile"])
+    if name == "/calendar-status" and not rest:
+        return apple_calendar(PROJECT)
     if name in {"/news", "/calendar", "/market", "/review"}:
         return {"status": "not_configured", "command": name, "external_actions_performed": False}
     if name in {"/plans", "/plans-preview"}:
@@ -86,11 +103,22 @@ def command(arguments, private_root=None):
             options = flags(rest, {"--at", "--since"}, ("--at", "--since"))
             return preview(config, options["--since"], options["--at"])
         raise LocalError("invalid plan command arguments; use /h")
-    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench"}:
+    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench", "/feishu-read", "/calendar-calendars", "/calendar-events"}:
         raise LocalError("command is not implemented; use /h")
     if not private_root:
         raise LocalError("--private-root is required; no default private directory is created")
     store = PrivateStore(private_root, PROJECT)
+    if name in {"/feishu-read", "/calendar-calendars", "/calendar-events"}:
+        TaskRunner(store).settings()
+        if name == "/feishu-read":
+            options = flags(rest, {"--profile", "--chat-id", "--since", "--until"}, ("--profile", "--chat-id", "--since", "--until"))
+            return feishu_messages(options["--profile"], options["--chat-id"], options["--since"], options["--until"])
+        if name == "/calendar-calendars" and not rest:
+            return apple_calendar(PROJECT, "calendars")
+        if name == "/calendar-events":
+            options = flags(rest, {"--calendar-id", "--since", "--until"}, ("--calendar-id", "--since", "--until"))
+            return apple_calendar(PROJECT, "events", options["--calendar-id"], options["--since"], options["--until"])
+        raise LocalError("invalid read-only connection command")
     if name == "/workbench":
         from .workbench import serve
         options = flags(rest, {"--port"})

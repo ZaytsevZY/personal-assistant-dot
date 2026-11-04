@@ -199,6 +199,16 @@ def check():
         require(runtime["news_preview"] == {"implemented": True, "adapter": "synthetic", "network_enabled": False,
                                             "persisted": False, "fixture_file": "templates/news-feed.example.json"},
                 "news preview must remain synthetic, offline and read-only")
+        require(runtime["public_news"] == {"implemented": True, "mode": "manual_fixed_sources", "accounts": False,
+                                           "persisted": False, "automatic": False},
+                "public news must remain manual, account-free and non-persistent")
+        require(runtime["readonly_connections"] == {"feishu": "explicit_existing_cli_profile",
+                "apple_calendar": "existing_eventkit_authorization_only", "profile": None, "calendar_id": None,
+                "writes": False, "request_permissions": False}, "public connection examples cannot contain private account bindings or request permissions")
+        require(policy["integrations"]["feishu"]["send"] is False
+                and policy["integrations"]["apple_calendar"]["write"] is False
+                and policy["integrations"]["apple_calendar"]["request_access"] is False,
+                "account connections cannot enable writes or permission requests")
         fixture = load_json("templates/news-feed.example.json")
         require(fixture["synthetic"] is True and fixture["schema_version"] == 1,
                 "news fixture must be explicitly synthetic")

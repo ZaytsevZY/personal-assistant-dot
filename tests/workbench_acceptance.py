@@ -8,6 +8,7 @@ import threading
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from uuid import uuid4
+from unittest.mock import patch
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT))
@@ -121,12 +122,33 @@ def main():
             assert snapshot == {p.relative_to(store.root).as_posix():p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
             assert data["news_preview"]["live_news"] is False
             print("PASS: authenticated news preview, ephemeral interests, private state unchanged and truthful live status")
+            with patch("assistant_dot.workbench.fetch_public_news",return_value={"mode":"manual_public_feeds","articles":[],"sources":[]}) as fetched:
+                assert request(server,"/api/news/fetch",{},authenticated=False)[0] == 403
+                assert fetched.call_count == 0
+                assert request(server,"/api/news/fetch",{"url":"https://untrusted.invalid"})[0] == 400
+                assert fetched.call_count == 0
+                assert request(server,"/api/news/fetch",{})[0] == 200
+                assert fetched.call_count == 1
+                server.server_news_lock.acquire()
+                try: assert request(server,"/api/news/fetch",{})[0] == 400
+                finally: server.server_news_lock.release()
+            with patch("assistant_dot.workbench.apple_calendar",return_value={"authorization":"not_determined","requested_access":False}) as calendar:
+                assert request(server,"/api/calendar/status",{"read_events":True})[0] == 400
+                assert calendar.call_count == 0
+                assert request(server,"/api/calendar/status",{})[0] == 200
+            with patch("assistant_dot.workbench.feishu_status",return_value={"status":"unavailable"}) as feishu:
+                assert request(server,"/api/feishu/status",{"profile":"synthetic-work"})[0] == 200
+                assert feishu.call_args.args == ("synthetic-work",)
+            assert request(server,"/api/calendar/events",{})[0] == 404
+            assert request(server,"/api/feishu/send",{})[0] == 404
+            assert snapshot == {p.relative_to(store.root).as_posix():p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
+            print("PASS: manual public fetch only, no arbitrary endpoints, concurrent fetch guard and no private read/write web routes")
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
             assert not thread.is_alive()
-    print("PASS: 4 HTTP acceptance groups; temporary foreground service stopped")
+    print("PASS: 5 HTTP acceptance groups; temporary foreground service stopped")
 
 
 if __name__ == "__main__":

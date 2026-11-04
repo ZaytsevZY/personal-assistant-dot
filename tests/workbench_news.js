@@ -20,10 +20,10 @@ const html=fs.readFileSync(path.join(project,"assistant_dot/workbench.html"),"ut
 const elements=Object.fromEntries([...html.matchAll(/id="([^"]+)"/g)].map(match=>[match[1],new Element()]));
 const topics=["politics","economics","technology"].map(topic=>Object.assign(new Element(),{value:topic}));
 const placeholder=Object.assign(new Element(),{disabled:true});
-const buttons=["refresh","inspect","pause","preview-plans","reconcile-plans","preview-news"].map(id=>elements[id]);
+const buttons=["refresh","inspect","pause","preview-plans","reconcile-plans","preview-news","fetch-public-news","inspect-feishu","inspect-calendar"].map(id=>elements[id]);
 const document={
   getElementById(id) {assert.ok(elements[id],"known element "+id);return elements[id];},
-  createElement(tag) {assert.ok(["td","tr","article","h4","h3","p","section","span","details","summary","button"].includes(tag));return new Element();},
+  createElement(tag) {assert.ok(["td","tr","article","h4","h3","p","section","span","details","summary","button","a"].includes(tag));return new Element();},
   querySelector(selector) {assert.equal(selector,'meta[name="local-token"]');return {content:"synthetic-session"};},
   querySelectorAll(selector) {
     if(selector==='[name="news-interest"]')return topics;
@@ -32,13 +32,14 @@ const document={
   }
 };
 const calls=[];
+const live={as_of:"2026-01-15T12:00:00Z",coverage:{politics:{candidates:0},economics:{candidates:1},technology:{candidates:0}},sources:[],articles:[{id:"synthetic-live",title:"Synthetic live-feed title",url:"https://www.federalreserve.gov/synthetic-test",topic:"economics",source_name:"Synthetic source",published_at:"2026-01-15T09:00:00Z",retrieved_at:"2026-01-15T12:00:00Z"}]};
 const state={settings:{paused:false},task_count:0,tasks:[],plan_config:{plans:[]},watermark:null,occurrences:[],news_preview:{reference_at:preview.reference_at}};
 async function fetch(route,options) {
   assert.equal(options.headers["X-Local-Token"],"synthetic-session");
   assert.equal(options.credentials,"omit");
   calls.push({route,data:options.body?JSON.parse(options.body):null});
-  assert.ok(["/api/state","/api/news/preview"].includes(route));
-  return {ok:true,json:async()=>route==="/api/state"?state:preview};
+  assert.ok(["/api/state","/api/news/preview","/api/news/fetch"].includes(route));
+  return {ok:true,json:async()=>route==="/api/state"?state:route==="/api/news/fetch"?live:preview};
 }
 const context=vm.createContext({document,fetch,Date,Map,crypto:{randomUUID:()=>"unused"}});
 vm.runInContext(fs.readFileSync(path.join(project,"assistant_dot/workbench.js"),"utf8"),context);
@@ -47,6 +48,7 @@ const texts=element=>[element.textContent,...element.children.flatMap(texts)];
 async function main() {
   await flush();
   assert.equal(elements["news-at"].value,"2026-01-15T12:00");
+  assert.deepEqual(calls.map(call=>call.route),["/api/state"]);
   assert.ok(topics.every(input=>!input.checked));
   topics[2].checked=true;
   await elements["preview-news"].handlers.click();await flush();
@@ -60,6 +62,14 @@ async function main() {
   assert.equal(elements["news-result"].hidden,true);
   assert.equal(elements["news-summary"].textContent,"");
   assert.equal(placeholder.disabled,true);
+  await elements["fetch-public-news"].handlers.click();await flush();
+  assert.deepEqual(calls.at(-1),{route:"/api/news/fetch",data:{}});
+  assert.equal(elements["public-news-result"].hidden,false);
+  assert.equal(elements["public-news-coverage"].children.length,3);
+  assert.ok(texts(elements["public-news-articles"]).includes("Synthetic live-feed title"));
+  const link=elements["public-news-articles"].children[0].children[1].children[0];
+  assert.equal(link.href,live.articles[0].url);
+  assert.equal(link.rel,"noopener noreferrer");
   console.log("PASS: news controls, explicit transient topics, attributed text-only rendering and stale preview clearing");
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});
