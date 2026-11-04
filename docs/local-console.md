@@ -26,6 +26,8 @@ python3 -B -m assistant_dot --private-root "<private-root>" /workbench
 
 新增[合成新闻预览](news-preview.md)：手动选择本次兴趣和分析时点，查看重大覆盖、兴趣与探索三个板块，展开来源、日期、事实陈述和评论。不会创建任务、写入兴趣或读取私人笔记；真实新闻在独立的“公开新闻”板块手动获取，见[真实连接](real-connections.md)。
 
+公开新闻支持按次选择已审查来源，分别显示来源失败、一手/编辑报道不足与语言地域缺口，见[来源审查](news-sources.md)。
+
 ## 本地安全边界
 
 校验精确 Host、Origin 与每次启动生成的随机请求口令；写操作必须带同源 Origin、口令和受限 JSON。跨站 API、iframe、错误 Host、超大或未知字段请求被拒绝。只开放固定应用资源与动作，不提供目录浏览、任意文件读取、URL 代理或 shell 执行。

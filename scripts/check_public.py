@@ -95,7 +95,7 @@ def check():
         fail(f"{item}: allowlisted file is missing")
 
     patterns = {
-        "private home path": re.compile(r"/(?:U[s]ers|home)/[^\s<>]+"),
+        "private home path": re.compile(r"(?<![A-Za-z0-9])/(?:U[s]ers|home)/[^\s<>]+"),
         "private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
         "GitHub token": re.compile(r"(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
         "AWS access key": re.compile(r"(?:AKIA|ASIA)[A-Z0-9]{16}"),

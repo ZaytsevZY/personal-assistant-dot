@@ -13,6 +13,7 @@ from .runtime import TaskRunner
 from .storage import LocalError
 from .news import bundled_preview, REFERENCE_AT, TOPICS, POLICY_VERSION
 from .live_news import fetch_public_news
+from .news_sources import source_catalog
 from .connections import feishu_status, apple_calendar
 
 
@@ -59,7 +60,7 @@ class WorkbenchServer(ThreadingHTTPServer):
                 "limits": {"task_rows": 100, "plan_rows": 100},
                 "news_preview": {"implemented": True, "mode": "synthetic_preview", "reference_at": REFERENCE_AT,
                                  "topics": list(TOPICS), "policy_version": POLICY_VERSION, "live_news": False},
-                "public_news": {"implemented": True, "mode": "manual_fixed_public_feeds", "fact_checking": False},
+                "public_news": {"implemented": True, "mode": "manual_fixed_public_feeds", "fact_checking": False, "catalog": source_catalog()},
                 "connections": {"feishu": "explicit_profile_status_and_cli_read", "apple_calendar": "permission_guarded_cli_read", "writes": False},
                 "unavailable": ["background_scheduler", "news_fact_checking", "feishu_send", "dot_push", "calendar_write", "market_data"]}
 
@@ -71,11 +72,13 @@ class WorkbenchServer(ThreadingHTTPServer):
             fields(data, ())
             return apple_calendar(self.project)
         if route == "/api/news/fetch":
-            fields(data, ())
+            fields(data, (), ("sources",))
+            if "sources" in data and not isinstance(data["sources"], list):
+                raise LocalError("sources must be an explicit array of registered IDs")
             if not self.server_news_lock.acquire(blocking=False):
                 raise LocalError("public news request already in progress")
             try:
-                return fetch_public_news()
+                return fetch_public_news(data.get("sources"))
             finally:
                 self.server_news_lock.release()
         if route == "/api/news/preview":

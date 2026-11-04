@@ -11,6 +11,7 @@ from .storage import LocalError, PrivateStore, now
 from .plans import PlanEngine, load_plans, preview
 from .news import bundled_preview, REFERENCE_AT
 from .live_news import fetch_public_news
+from .news_sources import source_catalog
 from .connections import feishu_status, feishu_messages, apple_calendar
 
 
@@ -37,6 +38,7 @@ HELP = {
         "/workbench [--port NUMBER]": "run the interactive loopback workbench in the foreground; Ctrl-C stops it",
         "/news-preview [--at ISO] [--interests TOPIC,TOPIC]": "read-only synthetic news; explicit topics only for this preview; no profile saved",
         "/news-fetch [--sources ID,ID]": "manually fetch fixed official public RSS feeds; no account, storage or delivery",
+        "/news-sources": "show reviewed sources, usage boundaries and deferred candidates without fetching",
         "/feishu-status --profile NAME": "inspect selected existing CLI profile locally; no login, switch or message read",
         "/feishu-read --profile NAME --chat-id ID --since ISO --until ISO": "explicit one-chat read, at most 7 days/20 messages; private root required; no send",
         "/calendar-status": "inspect EventKit permission without requesting access or reading events",
@@ -82,6 +84,8 @@ def command(arguments, private_root=None):
     if name == "/news-fetch":
         options = flags(rest, {"--sources"})
         return fetch_public_news(options["--sources"].split(",") if "--sources" in options else None)
+    if name == "/news-sources" and not rest:
+        return source_catalog()
     if name == "/feishu-status":
         options = flags(rest, {"--profile"}, ("--profile",))
         return feishu_status(options["--profile"])

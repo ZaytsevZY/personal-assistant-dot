@@ -38,6 +38,7 @@ python3 -B tests/acceptance.py
 | 飞书 / dot 对话、命令与电脑控制台 | [入口设计](docs/interfaces.md) |
 | 经济与股票查询的可选范围 | [经济与市场扩展](docs/market-extension.md) |
 | 本地数据、备份和公开边界 | [隐私与发布](docs/privacy.md) |
+| 新闻来源、许可边界、失败和覆盖缺口 | [来源审查](docs/news-sources.md) |
 | 真实 RSS、飞书 profile 与 Apple 日历只读接口 | [真实连接](docs/real-connections.md) |
 | 可插拔合成来源、重大覆盖与兴趣推荐预览 | [新闻预览](docs/news-preview.md) |
 | 重大新闻、来源差异、事实与观点 | [信息发现](docs/discovery.md) |

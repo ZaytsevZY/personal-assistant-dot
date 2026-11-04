@@ -51,7 +51,7 @@ function controls() {
   for (const id of ["since","at"]) byId(id).disabled = busy;
   byId("news-at").disabled = busy;
   byId("feishu-profile").disabled = busy;
-  for (const input of document.querySelectorAll('[name="news-interest"]')) input.disabled = busy;
+  for (const input of document.querySelectorAll('[name="news-interest"],[name="public-source"]')) input.disabled = busy;
 }
 
 function clearPreview() {
@@ -139,6 +139,7 @@ async function refresh() {
   clearPreview();
   clearNews();
   clearPublicNews();
+  sourceChoices(state.public_news.catalog);
   if (!byId("news-at").value) byId("news-at").value = state.news_preview.reference_at.slice(0,16);
 }
 
@@ -247,6 +248,29 @@ function clearPublicNews() {
   byId("public-news-summary").textContent = "";
 }
 
+const sourceKinds = {institutional_primary:"机构一手发布",editorial_reporting:"编辑报道 / 评论"};
+const sourceBases = {international_institution:"国际机构",united_states:"美国机构",european_union:"欧元区机构",global_contributor_network:"全球贡献者网络"};
+const coverageGaps = {no_source_selected:"未选来源",source_unavailable:"部分来源不可用",no_recent_candidates:"没有近期候选",no_primary_candidates:"缺少一手候选",no_editorial_candidates:"缺少编辑报道候选",fewer_than_two_editorial_publishers:"编辑报道提供方不足两家"};
+const fetchErrors = {timeout:"请求超时",output_limit:"响应超过限制",response_too_large:"响应超过限制",http_error:"服务器拒绝或返回 HTTP 错误",tls_verification_failed:"TLS 证书验证失败",dns_failed:"DNS 解析失败",connection_failed:"连接失败",unsupported_or_unsafe_feed:"格式不支持、不安全或可能是访问限制页",process_failed:"请求进程失败",transport_failed:"传输失败"};
+
+function sourceChoices(catalog) {
+  const choices = byId("public-source-choices");
+  if (choices.children.length) return;
+  for (const source of catalog.sources) {
+    const card = node(choices,"article","","module source-choice");
+    const label = node(card,"label","");
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "public-source"; input.value = source.id; input.checked = true; input.disabled = busy;
+    input.addEventListener("change",clearPublicNews);
+    label.appendChild(input);
+    node(label,"span",source.name);
+    node(card,"p",sourceKinds[source.kind] + " · " + sourceBases[source.editorial_base] + " · " + source.language);
+    const link = node(card,"a","来源使用边界","small");
+    link.href = source.terms_url; link.target = "_blank"; link.rel = "noopener noreferrer";
+  }
+  byId("public-source-notes").textContent = "注册表审查：" + catalog.reviewed_at + "。当前仅英语，编辑报道提供方仍少；中文及亚洲、非洲、拉美本地一手来源不足。暂缓候选：" + catalog.deferred.map(source=>source.id).join("、") + "；未纳入请求。";
+}
+
 function renderPublicNews(result) {
   const coverage = byId("public-news-coverage");
   coverage.replaceChildren();
@@ -254,31 +278,39 @@ function renderPublicNews(result) {
     const card = node(coverage,"article","","module");
     node(card,"h4",topicLabels[topic]);
     node(card,"p",value.candidates + " 条近 7 天待审候选");
+    node(card,"p","候选提供方：一手 " + value.primary_publishers + " / 编辑报道 " + value.editorial_publishers,"small");
+    node(card,"p","来源获取：" + value.fetched_sources + " 成功 / " + value.selected_sources + " 已选","small muted");
+    node(card,"p",value.gaps.map(gap=>coverageGaps[gap]).join("；") || "仍需人工核实消息链与覆盖","small muted");
     node(card,"p","重大性未评估，覆盖未核实","small muted");
   }
   byId("public-news-summary").textContent = "分析截止：" + result.as_of + "；真实公开源手动获取，不保存、不投递。";
-  byId("public-news-sources").textContent = result.sources.map(source => source.name + "：" + (source.status === "fetched" ? "已获取，合格候选 " + source.candidates + "，无效/过期/未来 " + source.filtered.invalid + "/" + source.filtered.stale + "/" + source.filtered.future : "不可用；网络、证书、上游或格式可能异常，没有视为零新闻")).join("；");
+  byId("public-news-sources").textContent = result.sources.map(source => source.name + "：" + (source.status === "fetched" ? "已获取，合格候选 " + source.candidates + "，无效/过期/未来/主题外 " + source.filtered.invalid + "/" + source.filtered.stale + "/" + source.filtered.future + "/" + source.filtered.out_of_scope : "不可用：" + (fetchErrors[source.error] || "请求失败") + "；没有视为零新闻")).join("；");
   const articles = byId("public-news-articles");
   articles.replaceChildren();
   if (!result.articles.length) node(articles,"p","没有符合条件的候选。来源失败或无近期结果，不代表没有重大新闻。","muted");
   for (const item of result.articles) {
     const card = node(articles,"article","","news-card");
-    node(card,"span",topicLabels[item.topic] + " · " + item.source_name,"badge");
+    node(card,"span",item.topics.map(topic=>topicLabels[topic]).join(" / ") + " · " + item.source_name,"badge");
     const heading = node(card,"h4","");
     const link = node(heading,"a",item.title);
     link.href = item.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    node(card,"p","发布：" + item.published_at + "；获取：" + item.retrieved_at,"small muted");
-    node(card,"p","来源标题，未经独立事实核查；事件日期未知，重大性未评估。","small");
+    node(card,"p","发布：" + (item.published_at || "未知") + (item.updated_at ? "；更新：" + item.updated_at : "") + "；获取：" + item.retrieved_at,"small muted");
+    node(card,"p","作者：" + (item.author || "来源未提供") + "；" + sourceKinds[item.source_kind] + (item.date_basis === "atom_updated_only" ? "；仅提供更新时间，不代表首次发布" : ""),"small");
+    node(card,"p","来源标题，未经独立事实核查；事件日期未知，重大性与逐条报道/评论类别未评估。","small");
+    const terms = node(card,"a","来源归属与使用条件","small");
+    terms.href = item.terms_url; terms.target = "_blank"; terms.rel = "noopener noreferrer";
   }
   byId("public-news-result").hidden = false;
 }
 
 byId("fetch-public-news").addEventListener("click",() => action(async () => {
   clearPublicNews();
-  byId("public-news-summary").textContent = "正在手动获取三个固定官方来源；不访问账号或私人资料。";
-  renderPublicNews(await api("/api/news/fetch",{}));
+  byId("public-news-summary").textContent = "正在手动获取所选固定来源；不访问账号或私人资料。";
+  const sources = [...document.querySelectorAll('[name="public-source"]')].filter(input => input.checked).map(input => input.value);
+  if (!sources.length) throw new Error("请至少选择一个来源");
+  renderPublicNews(await api("/api/news/fetch",{sources}));
   message("官方 RSS 获取已结束；请查看每个来源状态，结果没有保存或发送。");
 }));
 

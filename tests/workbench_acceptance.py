@@ -127,8 +127,12 @@ def main():
                 assert fetched.call_count == 0
                 assert request(server,"/api/news/fetch",{"url":"https://untrusted.invalid"})[0] == 400
                 assert fetched.call_count == 0
+                assert request(server,"/api/news/fetch",{"sources":None})[0] == 400
+                assert fetched.call_count == 0
                 assert request(server,"/api/news/fetch",{})[0] == 200
                 assert fetched.call_count == 1
+                assert request(server,"/api/news/fetch",{"sources":["ecb"]})[0] == 200
+                assert fetched.call_args.args == (["ecb"],)
                 server.server_news_lock.acquire()
                 try: assert request(server,"/api/news/fetch",{})[0] == 400
                 finally: server.server_news_lock.release()

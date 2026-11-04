@@ -9,6 +9,12 @@ import time
 from .storage import LocalError
 
 
+class ProcessFailure(LocalError):
+    def __init__(self, category, returncode=None):
+        self.category, self.returncode = category, returncode
+        super().__init__("local adapter " + category + "; raw output withheld")
+
+
 def bounded_process(arguments, timeout=15, limit=524288):
     """Collect bounded bytes from a trusted argv and kill on timeout/overflow.
 
@@ -27,7 +33,7 @@ def bounded_process(arguments, timeout=15, limit=524288):
             while selector.get_map():
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise LocalError("local adapter timed out")
+                    raise ProcessFailure("timeout")
                 for key, _ in selector.select(min(remaining, 0.2)):
                     data = os.read(key.fileobj.fileno(), 16384)
                     if not data:
@@ -38,16 +44,16 @@ def bounded_process(arguments, timeout=15, limit=524288):
                     else:
                         errors += len(data)
                     if len(output) > limit or errors > 16384:
-                        raise LocalError("local adapter output exceeds limits")
+                        raise ProcessFailure("output_limit")
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise LocalError("local adapter timed out")
+                raise ProcessFailure("timeout")
             process.wait(timeout=remaining)
             if process.returncode:
-                raise LocalError("local adapter failed; no credentials or raw errors returned")
+                raise ProcessFailure("process_failed", process.returncode)
             return bytes(output)
     except subprocess.TimeoutExpired:
-        raise LocalError("local adapter timed out") from None
+        raise ProcessFailure("timeout") from None
     finally:
         try:
             os.killpg(process.pid, signal.SIGKILL)
