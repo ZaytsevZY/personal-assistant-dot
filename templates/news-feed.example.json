@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "sources": [
+    {
+      "id": "synthetic-bulletin",
+      "name": "合成机构公报",
+      "url": "https://example.org/bulletin",
+      "origin_chain_id": "synthetic-primary",
+      "kind": "primary_statement"
+    },
+    {
+      "id": "synthetic-newsroom",
+      "name": "合成独立报道",
+      "url": "https://example.org/newsroom",
+      "origin_chain_id": "synthetic-reporting",
+      "kind": "reporting"
+    },
+    {
+      "id": "synthetic-syndication",
+      "name": "合成转载栏目",
+      "url": "https://example.org/syndication",
+      "origin_chain_id": "synthetic-reporting",
+      "kind": "syndicated"
+    }
+  ],
+  "reports": [
+    {
+      "id": "politics-a",
+      "event_id": "synthetic-public-policy",
+      "topic": "politics",
+      "title": "【合成】公共议题咨询安排",
+      "event_time": "2026-01-15T08:00:00Z",
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-bulletin",
+      "major": true,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-bulletin/politics-a"
+    },
+    {
+      "id": "politics-b",
+      "event_id": "synthetic-public-policy",
+      "topic": "politics",
+      "title": "【合成】公共议题咨询安排的报道",
+      "event_time": "2026-01-15T08:00:00Z",
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-newsroom",
+      "major": true,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-newsroom/politics-b"
+    },
+    {
+      "id": "economics-a",
+      "event_id": "synthetic-statistics",
+      "topic": "economics",
+      "title": "【合成】统计公报示例",
+      "event_time": "2026-01-15T08:00:00Z",
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-bulletin",
+      "major": true,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-bulletin/economics-a"
+    },
+    {
+      "id": "technology-a",
+      "event_id": "synthetic-research",
+      "topic": "technology",
+      "title": "【合成】研究计划提案",
+      "event_time": null,
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-newsroom",
+      "major": true,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-newsroom/technology-a"
+    },
+    {
+      "id": "technology-copy",
+      "event_id": "synthetic-research",
+      "topic": "technology",
+      "title": "【合成】同一报道的转载",
+      "event_time": null,
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-syndication",
+      "major": true,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-syndication/technology-copy"
+    },
+    {
+      "id": "interest-a",
+      "event_id": "synthetic-local-tool",
+      "topic": "technology",
+      "title": "【合成】本地工具使用方法",
+      "event_time": "2026-01-15T08:00:00Z",
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-newsroom",
+      "major": false,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-newsroom/interest-a"
+    },
+    {
+      "id": "explore-a",
+      "event_id": "synthetic-data-method",
+      "topic": "economics",
+      "title": "【合成】统计方法入门",
+      "event_time": "2026-01-15T08:00:00Z",
+      "published_at": "2026-01-15T09:00:00Z",
+      "source_id": "synthetic-bulletin",
+      "major": false,
+      "statements": [
+        {
+          "kind": "reported_fact",
+          "text": "合成来源称该示例安排已宣布；不对应任何真实事件。"
+        },
+        {
+          "kind": "commentary",
+          "text": "这是一条示例评论，影响尚需证据，不能视为事实。"
+        }
+      ],
+      "uncertainties": [
+        "纯合成测试；没有开展真实事实核查。"
+      ],
+      "correction_of": null,
+      "url": "https://example.org/synthetic-bulletin/explore-a"
+    }
+  ]
+}

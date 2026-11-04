@@ -13,6 +13,7 @@
     "assistant_dot/console.css",
     "assistant_dot/console.py",
     "assistant_dot/console_preview.js",
+    "assistant_dot/news.py",
     "assistant_dot/plans.py",
     "assistant_dot/runtime.py",
     "assistant_dot/storage.py",
@@ -37,6 +38,7 @@
     "docs/local-mvp.md",
     "docs/manual-plans.md",
     "docs/market-extension.md",
+    "docs/news-preview.md",
     "docs/privacy.md",
     "docs/recommendations.md",
     "docs/references.md",
@@ -53,11 +55,14 @@
     "templates/agent-handoff.md",
     "templates/change-proposal.md",
     "templates/feedback.example.json",
+    "templates/news-feed.example.json",
     "templates/news-item.example.json",
     "templates/task-envelope.example.json",
     "tests/acceptance.py",
     "tests/console_preview.js",
+    "tests/news_acceptance.py",
     "tests/plans_acceptance.py",
-    "tests/workbench_acceptance.py"
+    "tests/workbench_acceptance.py",
+    "tests/workbench_news.js"
   ]
 }

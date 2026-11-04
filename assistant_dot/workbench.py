@@ -10,6 +10,7 @@ from uuid import UUID
 from .plans import PlanEngine, load_plans, preview
 from .runtime import TaskRunner
 from .storage import LocalError
+from .news import bundled_preview, REFERENCE_AT, TOPICS, POLICY_VERSION
 
 
 ASSETS = Path(__file__).resolve().parent
@@ -52,9 +53,14 @@ class WorkbenchServer(ThreadingHTTPServer):
                 "plan_config": planned["config"], "watermark": planned["ledger"]["watermark"],
                 "occurrences": [{key: item.get(key) for key in record_fields} for item in planned["ledger"]["records"][-100:]],
                 "limits": {"task_rows": 100, "plan_rows": 100},
+                "news_preview": {"implemented": True, "mode": "synthetic_preview", "reference_at": REFERENCE_AT,
+                                 "topics": list(TOPICS), "policy_version": POLICY_VERSION, "live_news": False},
                 "unavailable": ["background_scheduler", "live_news", "feishu", "dot_push", "calendar", "market_data"]}
 
     def action(self, route, data):
+        if route == "/api/news/preview":
+            fields(data, ("at", "interests"))
+            return bundled_preview(self.project, data["at"], data["interests"])
         if route == "/api/run":
             fields(data, ("workflow_id", "request_id"))
             if not isinstance(data["workflow_id"], str) or not isinstance(data["request_id"], str):
@@ -166,7 +172,7 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         if not self._allowed(api=True, write=True):
             self._reply(403, {"status": "error", "message": "local request rejected"})
             return
-        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run"}
+        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run", "/api/news/preview"}
         if self.path not in routes:
             self._reply(404, {"status": "error", "message": "action not found"})
             return

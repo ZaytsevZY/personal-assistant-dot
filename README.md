@@ -2,7 +2,7 @@
 
 一个本地优先、可审计、由用户控制的个人助手项目。把生活与工作流程、新闻发现、开源调研和推荐反馈放进同一套可持续改进的方法中。
 
-**状态：已有可运行的本地交互工作台**，支持状态查看、私人笔记命令、合成任务、手动计划与持久账本；真实新闻、模型、账号渠道及后台调度仍未接入。没有内置个人资料。
+**状态：已有可运行的本地交互工作台**，支持状态查看、私人笔记命令、合成任务、手动计划、持久账本与新闻推荐合成预览；真实新闻、模型、账号渠道及后台调度仍未接入。没有内置个人资料。
 
 项目最初由 dot 协助开发和管理，dot 也可以成为初期主控制入口。名称保留这个起点，但核心策略、数据、提示词和调度契约不依赖 dot；后续可以换成其他 agent。控制入口、执行 agent 和输出渠道分别配置，见[agent 可替换设计](docs/agent-portability.md)。
 
@@ -13,6 +13,7 @@ macOS / Linux、Python 3.9+，无需第三方依赖。在仓库根目录先运�
 ```sh
 python3 -B -m assistant_dot /h
 python3 -B -m assistant_dot /runtime
+python3 -B -m assistant_dot /news-preview --interests technology
 python3 -B tests/acceptance.py
 ```
 
@@ -37,6 +38,7 @@ python3 -B tests/acceptance.py
 | 飞书 / dot 对话、命令与电脑控制台 | [入口设计](docs/interfaces.md) |
 | 经济与股票查询的可选范围 | [经济与市场扩展](docs/market-extension.md) |
 | 本地数据、备份和公开边界 | [隐私与发布](docs/privacy.md) |
+| 可插拔合成来源、重大覆盖与兴趣推荐预览 | [新闻预览](docs/news-preview.md) |
 | 重大新闻、来源差异、事实与观点 | [信息发现](docs/discovery.md) |
 | 个性化、探索与推荐方向调整 | [推荐政策](docs/recommendations.md) |
 | 开源跟踪、改进提案和提交方案 | [迭代机制](docs/iteration.md) |

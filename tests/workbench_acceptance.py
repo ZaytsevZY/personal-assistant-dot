@@ -106,12 +106,27 @@ def main():
             assert status == 200 and data["watermark"] is not None and data["task_count"] == 2
             assert data["settings"]["scheduler_enabled"] is False and data["settings"]["network_enabled"] is False
             print("PASS: preview without writes, reconciliation without execution and explicit plan run replay")
+            news = {"at":"2026-01-15T12:00:00Z","interests":["technology"]}
+            snapshot = {p.relative_to(store.root).as_posix():p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
+            assert request(server, "/api/news/preview", news, authenticated=False)[0] == 403
+            assert request(server, "/api/news/preview", news, headers={"Origin":None})[0] == 403
+            assert request(server, "/api/news/preview", dict(news, interests=["inferred-identity"]))[0] == 400
+            assert request(server, "/api/news/preview", dict(news, enable_network=True))[0] == 400
+            status, text, _ = request(server, "/api/news/preview", news)
+            result = json.loads(text)
+            assert status == 200 and result["mode"] == "synthetic_preview" and result["persisted"] is False
+            assert "SYNTHETIC_NOTE_MUST_STAY_PRIVATE" not in text
+            assert len(result["lanes"]["major_public"]) == 3
+            assert result["lanes"]["personal_relevant"][0]["topic"] == "technology"
+            assert snapshot == {p.relative_to(store.root).as_posix():p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
+            assert data["news_preview"]["live_news"] is False
+            print("PASS: authenticated news preview, ephemeral interests, private state unchanged and truthful live status")
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
             assert not thread.is_alive()
-    print("PASS: 3 HTTP acceptance groups; temporary foreground service stopped")
+    print("PASS: 4 HTTP acceptance groups; temporary foreground service stopped")
 
 
 if __name__ == "__main__":

@@ -22,6 +22,10 @@ python3 -B -m assistant_dot --private-root "<private-root>" /workbench
 
 任务和候选表最多显示最近 100 条；总数与最近记录指标分别标注。只返回合成记录和必要状态，不加载笔记、草稿正文、幂等键、账号或凭据。规则与恢复语义见[统一计划](manual-plans.md)，旧版[离线快照](console-snapshot.md)作为兼容导出保留。
 
+## 新闻与推荐
+
+新增[合成新闻预览](news-preview.md)：手动选择本次兴趣和分析时点，查看重大覆盖、兴趣与探索三个板块，展开来源、日期、事实陈述和评论。不会创建任务、写入兴趣或读取私人笔记；真实新闻依然未接入。
+
 ## 本地安全边界
 
 校验精确 Host、Origin 与每次启动生成的随机请求口令；写操作必须带同源 Origin、口令和受限 JSON。跨站 API、iframe、错误 Host、超大或未知字段请求被拒绝。只开放固定应用资源与动作，不提供目录浏览、任意文件读取、URL 代理或 shell 执行。
@@ -36,6 +40,8 @@ CSP 将资源与连接限制在本服务来源，禁止表单、嵌入和外部�
 python3 -B tests/acceptance.py
 python3 -B tests/plans_acceptance.py
 python3 -B tests/workbench_acceptance.py
+python3 -B tests/news_acceptance.py
+node tests/workbench_news.js
 node tests/console_preview.js
 node --check assistant_dot/workbench.js
 python3 -B scripts/check_public.py

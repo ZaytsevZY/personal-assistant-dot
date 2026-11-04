@@ -46,9 +46,11 @@ function isoInput(id) {
 }
 
 function controls() {
-  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,[data-run],[data-plan-run]")) button.disabled = busy;
+  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,#preview-news,[data-run],[data-plan-run]")) button.disabled = busy;
   if (state) for (const button of document.querySelectorAll("[data-run],[data-plan-run]")) button.disabled = busy || state.settings.paused;
   for (const id of ["since","at"]) byId(id).disabled = busy;
+  byId("news-at").disabled = busy;
+  for (const input of document.querySelectorAll('[name="news-interest"]')) input.disabled = busy;
 }
 
 function clearPreview() {
@@ -134,7 +136,77 @@ async function refresh() {
   byId("watermark").textContent = state.watermark || "尚未登记";
   occurrences("occurrence-rows",state.occurrences,true);
   clearPreview();
+  clearNews();
+  if (!byId("news-at").value) byId("news-at").value = state.news_preview.reference_at.slice(0,16);
 }
+
+const topicLabels = {politics:"时政",economics:"经济",technology:"科技"};
+const laneLabels = {major_public:"重大公共信息",personal_relevant:"本次明确兴趣",exploration:"相邻探索"};
+const newsWarnings = {synthetic_only_not_fact_checked:"合成内容，未经事实核查",single_origin_chain:"只有一条原始来源链",event_time_unknown:"事件日期未知",future_event_not_yet_occurred:"事件在分析时点尚未发生",event_time_disagreement:"报道的事件日期不同，需核对",old_event_recent_reporting:"旧事件近期发布报道，不代表事件刚刚发生"};
+const newsWhy = {major_flag_independent_of_interests:"来源样例标为重大；不受本次兴趣影响",explicit_topic_for_this_preview:"匹配本次主动选择的主题",outside_explicit_topics:"本次明确兴趣之外的探索；没有推断画像"};
+
+function node(parent, tag, value, className = "") {
+  const element = document.createElement(tag);
+  element.textContent = value;
+  element.className = className;
+  parent.appendChild(element);
+  return element;
+}
+
+function clearNews() {
+  byId("news-result").hidden = true;
+  byId("news-summary").textContent = "";
+}
+
+function renderNews(result) {
+  const sources = new Map(result.sources.map(source => [source.id, source]));
+  const coverage = byId("news-coverage");
+  coverage.replaceChildren();
+  for (const [topic, value] of Object.entries(result.coverage)) {
+    const card = node(coverage,"article","","module");
+    node(card,"h4",topicLabels[topic]);
+    node(card,"p",value.major_events ? value.major_events + " 个合成重大事件候选" : "没有符合条件的重大候选，覆盖有缺口");
+    node(card,"p","不代表真实新闻已覆盖","small muted");
+  }
+  byId("news-summary").textContent = "合成分析时点：" + result.as_of + " · 未联网、未保存、未投递；置信度未评估。";
+  byId("news-sources").textContent = "来源状态：" + result.source_status.map(source => sources.get(source.source_id).name + (source.status === "unavailable" ? "不可用" : "已载入合成样例")).join("；") + "。过滤报道：" + Object.entries(result.filtered_reports).map(([key,count]) => ({invalid:"无效",future:"尚未发布",stale:"过期",duplicate:"重复",conflict:"冲突"}[key]) + count).join(" / ") + "。兴趣/探索超限未展示：" + result.omitted_events.personal_relevant + "/" + result.omitted_events.exploration + "。";
+  const lanes = byId("news-lanes");
+  lanes.replaceChildren();
+  for (const [lane, events] of Object.entries(result.lanes)) {
+    const section = node(lanes,"section","","news-lane");
+    node(section,"h3",laneLabels[lane] + " · " + events.length);
+    if (!events.length) node(section,"p",lane === "personal_relevant" ? "没有匹配本次明确兴趣的候选；未选择兴趣时不生成此类推荐。" : "没有符合条件的候选。","muted small");
+    for (const event of events) {
+      const card = node(section,"article","","news-card");
+      node(card,"span",topicLabels[event.topic],"badge");
+      node(card,"h4",event.title);
+      node(card,"p","推荐依据：" + newsWhy[event.why],"small");
+      node(card,"p","声明的原始来源链：" + event.origin_chain_count + "；不同来源链不等于已独立核实。","small muted");
+      node(card,"p",event.warnings.map(value => newsWarnings[value]).join("；"),"small muted");
+      for (const report of event.reports) {
+        const source = sources.get(report.source_id);
+        const detail = node(card,"details","");
+        node(detail,"summary",source.name + " · 查看报道、事实陈述与评论");
+        node(detail,"p","报道标题：" + report.title,"small");
+        node(detail,"p","报道链接：" + report.url + " · 原始链 " + source.origin_chain_id,"small mono");
+        node(detail,"p","事件时间：" + (report.event_time || "未知，未推断") + "；发布时间：" + report.published_at + "；检索时间：无，未联网检索","small");
+        for (const statement of report.statements) node(detail,"p",(statement.kind === "reported_fact" ? "来源事实陈述（未核实）：" : "来源评论：") + statement.text,statement.kind === "commentary" ? "small commentary" : "small");
+        for (const uncertainty of report.uncertainties) node(detail,"p","不确定性：" + uncertainty,"small muted");
+        if (report.correction_of) node(detail,"p","更正引用：" + report.correction_of + "（保留引用，不自动认定更正已生效）","small");
+      }
+    }
+  }
+  byId("news-result").hidden = false;
+}
+
+byId("preview-news").addEventListener("click",() => action(async () => {
+  clearNews();
+  const interests = [...document.querySelectorAll('[name="news-interest"]')].filter(input => input.checked).map(input => input.value);
+  renderNews(await api("/api/news/preview",{at:isoInput("news-at"),interests}));
+  message("已生成合成新闻预览；没有创建任务、保存兴趣或改变检索方向。");
+}));
+byId("news-at").addEventListener("input",clearNews);
+for (const input of document.querySelectorAll('[name="news-interest"]')) input.addEventListener("change",clearNews);
 
 byId("refresh").addEventListener("click",() => action(async () => {await refresh(); message("状态已刷新。");}));
 byId("inspect").addEventListener("click",() => action(async () => {await api("/api/inspect",{}); await refresh(); message("已核对中断记录，没有重跑任务。");}));

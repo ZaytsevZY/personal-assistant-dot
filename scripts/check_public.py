@@ -196,6 +196,16 @@ def check():
         require(runtime["workbench"] == {"implemented": True, "bind": "127.0.0.1", "foreground_only": True}
                 and runtime["manual_planning"]["automatic_execution"] is False,
                 "workbench and planner cannot enable background or remote execution")
+        require(runtime["news_preview"] == {"implemented": True, "adapter": "synthetic", "network_enabled": False,
+                                            "persisted": False, "fixture_file": "templates/news-feed.example.json"},
+                "news preview must remain synthetic, offline and read-only")
+        fixture = load_json("templates/news-feed.example.json")
+        require(fixture["synthetic"] is True and fixture["schema_version"] == 1,
+                "news fixture must be explicitly synthetic")
+        require(all(item["title"].startswith("【合成】") and urlparse(item["url"]).hostname == "example.org"
+                    for item in fixture["reports"]), "news reports must remain reserved-domain synthetic examples")
+        require(all(urlparse(item["url"]).hostname == "example.org" for item in fixture["sources"]),
+                "news preview sources cannot enable real endpoints")
         require(schedules["scheduler_implemented"] is False, "scheduler is not implemented")
         require(all(schedules[key] is None for key in ("backend", "timezone", "output_channel")),
                 "public scheduler example cannot imply configured delivery")

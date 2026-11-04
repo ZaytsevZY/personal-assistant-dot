@@ -9,6 +9,7 @@ from .runtime import TaskRunner, validate_settings
 from .console import export_console, load_schedule_registry
 from .storage import LocalError, PrivateStore, now
 from .plans import PlanEngine, load_plans, preview
+from .news import bundled_preview, REFERENCE_AT
 
 
 PROJECT = Path(__file__).resolve().parents[1]
@@ -32,6 +33,7 @@ HELP = {
         "/plans-state": "inspect the private ledger and reconcile interrupted task outcomes",
         "/plans-run ID [--at ISO]": "manually execute one eligible synthetic occurrence",
         "/workbench [--port NUMBER]": "run the interactive loopback workbench in the foreground; Ctrl-C stops it",
+        "/news-preview [--at ISO] [--interests TOPIC,TOPIC]": "read-only synthetic news; explicit topics only for this preview; no profile saved",
     },
     "not_configured": ["natural_language_agent", "live_news", "feishu", "dot_push", "calendar", "market_data", "background_scheduler"],
 }
@@ -59,10 +61,15 @@ def command(arguments, private_root=None):
     if name == "/runtime" and not rest:
         return {"status": "local_only", "available_adapter": "synthetic", "private_store_checked": False, "agent_replaceable": True,
                 "console_mode": "interactive_loopback", "manual_planning": True,
+                "news_preview": "synthetic_read_only",
                 "network_enabled": False, "delivery_enabled": False, "scheduler_enabled": False}
     if name == "/schedule" and not rest:
         registry = load_schedule_registry(PROJECT)
         return {"status": "not_running", "registry": registry, "changes_supported": False}
+    if name == "/news-preview":
+        options = flags(rest, {"--at", "--interests"})
+        topics = options["--interests"].split(",") if options.get("--interests") else []
+        return bundled_preview(PROJECT, options.get("--at", REFERENCE_AT), topics)
     if name in {"/news", "/calendar", "/market", "/review"}:
         return {"status": "not_configured", "command": name, "external_actions_performed": False}
     if name in {"/plans", "/plans-preview"}:
