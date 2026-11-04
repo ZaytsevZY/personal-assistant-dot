@@ -24,7 +24,7 @@
 
 ## 适配契约草案
 
-[运行配置样例](../config/runtime.example.json)描述逻辑角色与能力约束；[通用任务样例](../templates/task-envelope.example.json)描述一次任务，不包含实际用户内容。这些是设计样例，没有实现运行器或完整 JSON Schema。
+[运行配置样例](../config/runtime.example.json)描述逻辑角色与能力约束；[通用任务样例](../templates/task-envelope.example.json)描述完整目标任务格式，不包含实际用户内容。当前[本地运行器](../assistant_dot/runtime.py)实现了精简的 TaskRequest、Draft 和 prepare/run 适配接口；完整 JSON Schema、平台适配与取消接口尚未实现。
 
 拟定适配接口：`prepare(task)` 报告可用能力与缺失条件，`run(task)` 执行已获授权的步骤，`inspect(run_id)` 查询状态与已验证副作用，`cancel(run_id)` 尽力停止尚未执行的步骤。取消不能撤回已经发出的消息或写入；必须返回实际结果。接口允许同步或异步实现，平台映射藏在适配器中。
 
@@ -40,4 +40,4 @@
 4. 用[接管模板](../templates/agent-handoff.md)记录差异、用户选择与回滚点。切换不意味着扩大数据外发或通知范围。
 5. 保留稳定任务 ID、水位与已投递记录，切换主执行租约，避免两套 agent 同时运行。先小范围试用，失败就按快照回滚。
 
-首次实现至少进行一次不依赖 dot 会话的任务重放。当前没有实现上述适配接口或通过 agent 互换测试，路线图仅将其列为验收要求。
+本地验收已使用两个合成适配器验证不依赖 dot 会话的持久任务重放与重复执行保护。这不代表不同真实 agent 的专有检查点已经兼容；真实平台接管仍按上述迁移流程单独验证。

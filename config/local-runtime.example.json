@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "adapter": "synthetic",
+  "paused": false,
+  "network_enabled": false,
+  "delivery_enabled": false,
+  "scheduler_enabled": false
+}

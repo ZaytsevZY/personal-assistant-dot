@@ -78,7 +78,10 @@ def check():
             if child.is_symlink():
                 fail(f"{relative}: symbolic links are not allowed")
             elif child.is_dir():
-                if relative in allowed_directories:
+                if child.name == "__pycache__":
+                    # Known ignored bytecode is never a public candidate.
+                    continue
+                elif relative in allowed_directories:
                     pending.append(child)
                 else:
                     fail(f"{relative}: unapproved directory; contents not inspected")
@@ -133,13 +136,23 @@ def check():
 
     policy = load_json("config/policy.example.json")
     runtime = load_json("config/runtime.example.json")
+    local_settings = load_json("config/local-runtime.example.json")
     schedules = load_json("config/schedules.example.json")
     sources = load_json("config/sources.example.json")
     try:
-        require(policy["mode"] == "design_only", "draft must declare design_only")
+        require(policy["mode"] == "local_mvp", "project must declare the local-only MVP")
         require(policy["project_name"] == "personal-assistant-dot", "project name must match")
         require(policy["runtime_file"] in allowed, "runtime config must be allowlisted")
-        require(runtime["status"] == "design_only", "runtime adapters are not implemented")
+        require(runtime["status"] == "local_mvp", "runtime status must match the local MVP")
+        require(policy["local_runtime_file"] in allowed
+                and runtime["local_runner"]["config_file"] == policy["local_runtime_file"],
+                "local config references must agree and be allowlisted")
+        require(runtime["local_runner"]["implemented"] is True
+                and runtime["local_runner"]["available_adapter"] == "synthetic",
+                "only the synthetic local runner is implemented")
+        require(local_settings == {"schema_version": 1, "adapter": "synthetic", "paused": False,
+                                   "network_enabled": False, "delivery_enabled": False, "scheduler_enabled": False},
+                "public local settings must keep all external actions disabled")
         require(runtime["control_host"]["initial_choice"] == "dot",
                 "initial development/control host must match the documented starting point")
         for role in ("control_host", "execution_agent", "model_service", "scheduler_backend", "output_channel"):

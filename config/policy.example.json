@@ -2,10 +2,11 @@
   "schema_version": 1,
   "policy_version": "0.1.0-draft",
   "project_name": "personal-assistant-dot",
-  "mode": "design_only",
+  "mode": "local_mvp",
   "schedules_file": "config/schedules.example.json",
   "sources_file": "config/sources.example.json",
   "runtime_file": "config/runtime.example.json",
+  "local_runtime_file": "config/local-runtime.example.json",
   "privacy": {
     "private_root": null,
     "private_root_must_be_outside_repository": true,
