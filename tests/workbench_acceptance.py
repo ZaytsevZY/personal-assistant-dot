@@ -147,12 +147,21 @@ def main():
             assert request(server,"/api/feishu/send",{})[0] == 404
             assert snapshot == {p.relative_to(store.root).as_posix():p.read_bytes() for p in store.root.rglob("*") if p.is_file()}
             print("PASS: manual public fetch only, no arbitrary endpoints, concurrent fetch guard and no private read/write web routes")
+            assert request(server, "/api/news/daily", {}, authenticated=False)[0] == 403
+            assert request(server, "/api/news/daily", {}, headers={"Origin":None})[0] == 403
+            assert request(server, "/api/news/daily", {"sources":["untrusted"]})[0] == 400
+            assert json.loads(request(server, "/api/news/daily", {})[1])["status"] == "disabled"
+            with patch("assistant_dot.workbench.daily_news.run", return_value={"status":"reused"}) as run:
+                assert json.loads(request(server, "/api/news/daily", {})[1])["status"] == "reused"
+                assert run.call_args.kwargs == {"manual": True}
+            assert json.loads(request(server, "/api/state")[1])["daily_news"] == {"config":None,"latest":None}
+            print("PASS: daily archive status and authenticated fixed-action trigger")
         finally:
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
             assert not thread.is_alive()
-    print("PASS: 5 HTTP acceptance groups; temporary foreground service stopped")
+    print("PASS: HTTP acceptance groups; temporary foreground service stopped")
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ from .storage import LocalError, PrivateStore, now
 from .plans import PlanEngine, load_plans, preview
 from .news import bundled_preview, REFERENCE_AT
 from .live_news import fetch_public_news
+from . import daily_news
 from .news_sources import source_catalog
 from .connections import feishu_status, feishu_messages, apple_calendar
 from .calendar_helper import CalendarHelper
@@ -28,7 +29,7 @@ HELP = {
         "/run demo-news|demo-open-source [--key VALUE]": "run synthetic data only; optional replay protection",
         "/pause | /resume": "pause/resume manual demo runs, not a background scheduler",
         "/runtime": "show local capabilities without account details",
-        "/schedule": "show the central registry; all schedules remain disabled",
+        "/schedule": "show the disabled public defaults and, with a private root, daily news configuration",
         "/console": "export a read-only local HTML snapshot and hypothetical UTC preview",
         "/plans": "show effective manual-only synthetic plans; optional private override",
         "/plans-preview --since ISO --at ISO": "analyze a bounded due window without writes or execution",
@@ -39,6 +40,8 @@ HELP = {
         "/workbench [--port NUMBER]": "run the interactive loopback workbench in the foreground; Ctrl-C stops it",
         "/news-preview [--at ISO] [--interests TOPIC,TOPIC]": "read-only synthetic news; explicit topics only for this preview; no profile saved",
         "/news-fetch [--sources ID,ID]": "manually fetch fixed official public RSS feeds; no account, storage or delivery",
+        "/news-daily-config --enabled yes|no --timezone AREA/CITY --time HH:MM": "configure the opt-in private daily RSS schedule",
+        "/news-daily-tick | /news-daily-now | /news-daily-status": "check due time, run today on demand, or inspect private saved RSS",
         "/news-sources": "show reviewed sources, usage boundaries and deferred candidates without fetching",
         "/feishu-status --profile NAME": "inspect selected existing CLI profile locally; no login, switch or message read",
         "/feishu-read --profile NAME --chat-id ID --since ISO --until ISO": "explicit one-chat read, at most 7 days/20 messages; private root required; no send",
@@ -79,7 +82,12 @@ def command(arguments, private_root=None):
                 "network_enabled": False, "delivery_enabled": False, "scheduler_enabled": False}
     if name == "/schedule" and not rest:
         registry = load_schedule_registry(PROJECT)
-        return {"status": "not_running", "registry": registry, "changes_supported": False}
+        result = {"status": "not_running", "registry": registry, "changes_supported": False}
+        if private_root:
+            store = PrivateStore(private_root, PROJECT)
+            result["daily_news"] = daily_news.configuration(store, PROJECT)
+            result["status"] = "configuration_only"
+        return result
     if name == "/news-preview":
         options = flags(rest, {"--at", "--interests"})
         topics = options["--interests"].split(",") if options.get("--interests") else []
@@ -112,11 +120,18 @@ def command(arguments, private_root=None):
             options = flags(rest, {"--at", "--since"}, ("--at", "--since"))
             return preview(config, options["--since"], options["--at"])
         raise LocalError("invalid plan command arguments; use /h")
-    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench", "/feishu-read", "/calendar-calendars", "/calendar-events", "/calendar-verify"}:
+    if name not in {"init", "/capture", "/tasks", "/status", "/run", "/pause", "/resume", "/console", "/plans-copy", "/plans-reconcile", "/plans-state", "/plans-run", "/workbench", "/news-daily-config", "/news-daily-tick", "/news-daily-now", "/news-daily-status", "/feishu-read", "/calendar-calendars", "/calendar-events", "/calendar-verify"}:
         raise LocalError("command is not implemented; use /h")
     if not private_root:
         raise LocalError("--private-root is required; no default private directory is created")
     store = PrivateStore(private_root, PROJECT)
+    if name == "/news-daily-config":
+        options = flags(rest, {"--enabled", "--timezone", "--time"}, ("--enabled", "--timezone", "--time"))
+        return daily_news.configure(store, PROJECT, options["--enabled"], options["--timezone"], options["--time"])
+    if name in {"/news-daily-tick", "/news-daily-now", "/news-daily-status"} and not rest:
+        if name == "/news-daily-status":
+            return daily_news.snapshot(store, PROJECT)
+        return daily_news.run(store, PROJECT, manual=name == "/news-daily-now")
     if name in {"/feishu-read", "/calendar-calendars", "/calendar-events", "/calendar-verify"}:
         TaskRunner(store).settings()
         if name == "/feishu-read":

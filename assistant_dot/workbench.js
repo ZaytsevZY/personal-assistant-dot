@@ -46,7 +46,8 @@ function isoInput(id) {
 }
 
 function controls() {
-  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,#preview-news,#fetch-public-news,#inspect-feishu,#inspect-calendar,[data-run],[data-plan-run]")) button.disabled = busy;
+  for (const button of document.querySelectorAll("#refresh,#inspect,#pause,#preview-plans,#reconcile-plans,#preview-news,#fetch-public-news,#run-daily-news,#inspect-feishu,#inspect-calendar,[data-run],[data-plan-run]")) button.disabled = busy;
+  if (!state?.daily_news?.config) byId("run-daily-news").disabled = true;
   if (state) for (const button of document.querySelectorAll("[data-run],[data-plan-run]")) button.disabled = busy || state.settings.paused;
   for (const id of ["since","at"]) byId(id).disabled = busy;
   byId("news-at").disabled = busy;
@@ -139,6 +140,7 @@ async function refresh() {
   clearPreview();
   clearNews();
   clearPublicNews();
+  renderDailyNews(state.daily_news);
   sourceChoices(state.public_news.catalog);
   if (!byId("news-at").value) byId("news-at").value = state.news_preview.reference_at.slice(0,16);
 }
@@ -213,7 +215,7 @@ for (const input of document.querySelectorAll('[name="news-interest"]')) input.a
 
 byId("refresh").addEventListener("click",() => action(async () => {await refresh(); message("状态已刷新。");}));
 byId("inspect").addEventListener("click",() => action(async () => {await api("/api/inspect",{}); await refresh(); message("已核对中断记录，没有重跑任务。");}));
-byId("pause").addEventListener("click",() => action(async () => {await api("/api/pause",{paused:!state.settings.paused}); await refresh(); message("手动运行器状态已更新，后台调度仍关闭。");}));
+byId("pause").addEventListener("click",() => action(async () => {await api("/api/pause",{paused:!state.settings.paused}); await refresh(); message("手动运行器状态已更新，不影响每日新闻计划。");}));
 for (const button of document.querySelectorAll("[data-run]")) {
   button.addEventListener("click",() => action(async () => {
     const workflow = button.dataset.run;
@@ -242,6 +244,41 @@ for (const id of ["since","at"]) byId(id).addEventListener("input",clearPreview)
 byId("at").value = clock.toISOString().slice(0,16);
 byId("since").value = new Date(clock.getTime() - 24*60*60*1000).toISOString().slice(0,16);
 action(refresh);
+
+function renderDailyNews(daily) {
+  const config = daily?.config;
+  const latest = daily?.latest;
+  byId("daily-count").textContent = config?.enabled ? "已配置" : "关闭";
+  byId("daily-news-schedule").textContent = config?.enabled
+    ? "计划：" + config.local_time + " · " + config.timezone + "。本机自动任务独立于浏览器，只存本机、不发送。"
+    : "自动运行未配置或已关闭。";
+  byId("run-daily-news").disabled = !config || busy;
+  const archive = byId("daily-news-archive");
+  archive.replaceChildren();
+  if (!latest) {
+    byId("daily-news-status").textContent = "还没有本机存档。";
+    return;
+  }
+  const sourceFailures = latest.result.sources.filter(source => source.status !== "fetched");
+  byId("daily-news-status").textContent = latest.date + " · " + ({complete:"完成",partial:"部分来源不可用",failed:"所有来源失败"}[latest.status])
+    + " · " + (latest.trigger === "schedule" ? "定时运行" : "手动运行")
+    + " · " + latest.result.articles.length + " 条候选 · 获取时间 " + latest.result.as_of
+    + (sourceFailures.length ? " · " + sourceFailures.map(source => source.name + "：" + (fetchErrors[source.error] || "不可用")).join("；") : "");
+  for (const item of latest.result.articles) {
+    const card = node(archive,"article","","news-card");
+    const title = node(card,"h4","");
+    const link = node(title,"a",item.title);
+    link.href = item.url; link.target = "_blank"; link.rel = "noopener noreferrer";
+    node(card,"p",item.source_name + " · " + (item.published_at || item.updated_at || "发布日期未知") + " · 来源标题，未经独立核实","small muted");
+  }
+}
+
+byId("run-daily-news").addEventListener("click",() => action(async () => {
+  const result = await api("/api/news/daily",{});
+  await refresh();
+  const statuses = {complete:"本次新闻已存档。",partial:"本次新闻已存档，部分来源不可用。",failed:"来源均不可用，已记录失败；可再试。",reused:"今日已有存档，没有重复抓取。",busy:"另一次新闻抓取正在运行。",disabled:"请先配置每日新闻。"};
+  message(statuses[result.status],["failed","disabled"].includes(result.status));
+}));
 
 function clearPublicNews() {
   byId("public-news-result").hidden = true;

@@ -13,6 +13,7 @@ from .runtime import TaskRunner
 from .storage import LocalError
 from .news import bundled_preview, REFERENCE_AT, TOPICS, POLICY_VERSION
 from .live_news import fetch_public_news
+from . import daily_news
 from .news_sources import source_catalog
 from .connections import feishu_status, apple_calendar
 
@@ -62,7 +63,8 @@ class WorkbenchServer(ThreadingHTTPServer):
                                  "topics": list(TOPICS), "policy_version": POLICY_VERSION, "live_news": False},
                 "public_news": {"implemented": True, "mode": "manual_fixed_public_feeds", "fact_checking": False, "catalog": source_catalog()},
                 "connections": {"feishu": "explicit_profile_status_and_cli_read", "apple_calendar": "permission_guarded_cli_read", "writes": False},
-                "unavailable": ["background_scheduler", "news_fact_checking", "feishu_send", "dot_push", "calendar_write", "market_data"]}
+                "daily_news": daily_news.snapshot(self.store, self.project),
+                "unavailable": ["general_background_scheduler", "news_fact_checking", "feishu_send", "dot_push", "calendar_write", "market_data"]}
 
     def action(self, route, data):
         if route == "/api/feishu/status":
@@ -71,6 +73,9 @@ class WorkbenchServer(ThreadingHTTPServer):
         if route == "/api/calendar/status":
             fields(data, ())
             return apple_calendar(self.project)
+        if route == "/api/news/daily":
+            fields(data, ())
+            return daily_news.run(self.store, self.project, manual=True)
         if route == "/api/news/fetch":
             fields(data, (), ("sources",))
             if "sources" in data and not isinstance(data["sources"], list):
@@ -195,7 +200,7 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         if not self._allowed(api=True, write=True):
             self._reply(403, {"status": "error", "message": "local request rejected"})
             return
-        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run", "/api/news/preview", "/api/news/fetch", "/api/feishu/status", "/api/calendar/status"}
+        routes = {"/api/run", "/api/pause", "/api/inspect", "/api/plans/preview", "/api/plans/reconcile", "/api/plans/run", "/api/news/preview", "/api/news/fetch", "/api/news/daily", "/api/feishu/status", "/api/calendar/status"}
         if self.path not in routes:
             self._reply(404, {"status": "error", "message": "action not found"})
             return
