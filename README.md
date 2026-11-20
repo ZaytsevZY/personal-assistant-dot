@@ -45,7 +45,7 @@ python3 -B tests/acceptance.py
 | 个性化、探索与推荐方向调整 | [推荐政策](docs/recommendations.md) |
 | 开源跟踪、改进提案和提交方案 | [迭代机制](docs/iteration.md) |
 | 统一调度与移动端可达性 | [调度设计](docs/scheduling.md) |
-| 如何判断助手是否有用 | [评估与路线图](docs/roadmap.md) |
+| 功能清单、配置位置、验收和维护 | [功能清单与路线图](docs/roadmap.md) |
 | 候选框架及一手参考 | [参考资料](docs/references.md) |
 | 通用运行配置 | [配置样例](config/policy.example.json) |
 | 新闻源种子清单 | [来源样例](config/sources.example.json) |
